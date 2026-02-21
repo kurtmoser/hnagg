@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    ports:
+      - "50143:5432"
+    environment:
+      POSTGRES_USER: hackernews
+      POSTGRES_PASSWORD: hackernews
+      POSTGRES_DB: hackernews
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "50142:3000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: hackernews
+      DB_PASSWORD: hackernews
+      DB_NAME: hackernews
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "50141:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
