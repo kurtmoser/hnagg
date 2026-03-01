@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { HnApiService, HnApiItem } from './hn-api.service';
 
@@ -58,6 +58,41 @@ export class HnImportService {
     const skipped = items.length - stories.length;
     console.log(`✅ Import complete: ${imported} stories imported, ${skipped} non-story items skipped.\n`);
     return { imported, skipped };
+  }
+
+  async insertMissing(
+    ids: number[],
+  ): Promise<{ inserted: number; skipped: number }> {
+    if (ids.length === 0) return { inserted: 0, skipped: 0 };
+
+    const existingItems = await this.hnItemRepository.find({
+      where: { id: In(ids) },
+      select: ['id'],
+    });
+    const existingIds = new Set(existingItems.map((item) => item.id));
+    const missingIds = ids.filter((id) => !existingIds.has(id));
+
+    if (missingIds.length === 0) {
+      return { inserted: 0, skipped: ids.length };
+    }
+
+    const items: HnApiItem[] = [];
+    for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+      const batch = missingIds.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map((id) => this.hnApiService.getItem(id)),
+      );
+      items.push(...results.filter((item): item is HnApiItem => item !== null));
+    }
+
+    let inserted = 0;
+    for (const apiItem of items) {
+      const entity = this.mapToEntity(apiItem);
+      await this.hnItemRepository.save(entity);
+      inserted++;
+    }
+
+    return { inserted, skipped: existingIds.size };
   }
 
   private mapToEntity(apiItem: HnApiItem): Partial<HnItem> {

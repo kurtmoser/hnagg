@@ -1,19 +1,29 @@
 import { Command, CommandRunner } from 'nest-commander';
 import * as https from 'https';
+import { HnImportService } from '../hn/hn-import.service';
 
 const UPDATES_URL =
   'https://hacker-news.firebaseio.com/v0/updates.json';
 
+const DEBOUNCE_MS = 2000;
+
 @Command({
   name: 'stream-updates',
   description:
-    'Long-running prototype: stream HN item updates via SSE and log them',
+    'Long-running: stream HN item updates via SSE and insert missing items',
 })
 export class StreamUpdatesCommand extends CommandRunner {
+  private pendingIds = new Set<number>();
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private processing = false;
+
+  constructor(private readonly hnImportService: HnImportService) {
+    super();
+  }
+
   async run(): Promise<void> {
     console.log('\n🔴 Streaming /v0/updates.json (press Ctrl+C to stop)\n');
     this.connect();
-    // keep the process alive indefinitely
     await new Promise<void>(() => { });
   }
 
@@ -61,13 +71,10 @@ export class StreamUpdatesCommand extends CommandRunner {
 
   private handleEvent(raw: string): void {
     const lines = raw.split('\n');
-    let eventType = '';
     let data = '';
 
     for (const line of lines) {
-      if (line.startsWith('event: ')) {
-        eventType = line.slice(7).trim();
-      } else if (line.startsWith('data: ')) {
+      if (line.startsWith('data: ')) {
         data += line.slice(6);
       }
     }
@@ -79,12 +86,50 @@ export class StreamUpdatesCommand extends CommandRunner {
       const items: number[] = parsed?.data?.items ?? parsed?.items ?? [];
       if (items.length === 0) return;
 
-      const timestamp = new Date().toISOString();
-      console.log(
-        `[${timestamp}] ${eventType || 'message'}: ${items.length} items changed → [${items.slice(0, 10).join(', ')}${items.length > 10 ? ', ...' : ''}]`,
-      );
+      for (const id of items) {
+        this.pendingIds.add(id);
+      }
+
+      this.scheduleProcessing();
     } catch {
       // keep-alive or non-JSON event, ignore
+    }
+  }
+
+  private scheduleProcessing(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    this.debounceTimer = setTimeout(() => {
+      this.processPendingIds();
+    }, DEBOUNCE_MS);
+  }
+
+  private async processPendingIds(): Promise<void> {
+    if (this.processing || this.pendingIds.size === 0) return;
+
+    this.processing = true;
+    const ids = Array.from(this.pendingIds);
+    this.pendingIds.clear();
+
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Processing ${ids.length} item IDs...`);
+
+    try {
+      const result = await this.hnImportService.insertMissing(ids);
+      console.log(
+        `  ✅ ${result.inserted} inserted, ${result.skipped} already in DB`,
+      );
+    } catch (err) {
+      console.error(`  ❌ Error:`, err.message ?? err);
+    }
+
+    this.processing = false;
+
+    // if more IDs accumulated while processing, schedule again
+    if (this.pendingIds.size > 0) {
+      this.scheduleProcessing();
     }
   }
 }
