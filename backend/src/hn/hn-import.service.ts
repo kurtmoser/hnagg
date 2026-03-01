@@ -60,39 +60,68 @@ export class HnImportService {
     return { imported, skipped };
   }
 
-  async insertMissing(
+  async syncItems(
     ids: number[],
-  ): Promise<{ inserted: number; skipped: number }> {
-    if (ids.length === 0) return { inserted: 0, skipped: 0 };
+  ): Promise<{ inserted: number; updated: number; unchanged: number; skippedNonStory: number }> {
+    if (ids.length === 0) return { inserted: 0, updated: 0, unchanged: 0, skippedNonStory: 0 };
 
+    // Load full existing records (need all fields for diffing)
     const existingItems = await this.hnItemRepository.find({
       where: { id: In(ids) },
-      select: ['id'],
     });
-    const existingIds = new Set(existingItems.map((item) => item.id));
-    const missingIds = ids.filter((id) => !existingIds.has(id));
+    const existingMap = new Map(existingItems.map((item) => [item.id, item]));
+    const missingIds = ids.filter((id) => !existingMap.has(id));
 
-    if (missingIds.length === 0) {
-      return { inserted: 0, skipped: ids.length };
-    }
-
-    const items: HnApiItem[] = [];
+    // --- Insert missing items ---
+    const fetchedMissing: HnApiItem[] = [];
     for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
       const batch = missingIds.slice(i, i + BATCH_SIZE);
       const results = await Promise.all(
         batch.map((id) => this.hnApiService.getItem(id)),
       );
-      items.push(...results.filter((item): item is HnApiItem => item !== null));
+      fetchedMissing.push(...results.filter((item): item is HnApiItem => item !== null));
     }
 
     let inserted = 0;
-    for (const apiItem of items) {
-      const entity = this.mapToEntity(apiItem);
-      await this.hnItemRepository.save(entity);
+    for (const apiItem of fetchedMissing) {
+      await this.hnItemRepository.save(this.mapToEntity(apiItem));
       inserted++;
     }
 
-    return { inserted, skipped: existingIds.size };
+    // --- Update existing stories ---
+    const existingStories = existingItems.filter((item) => item.type === 'story');
+    const skippedNonStory = existingItems.length - existingStories.length;
+    const storyIds = existingStories.map((item) => item.id);
+
+    const fetchedStories: HnApiItem[] = [];
+    for (let i = 0; i < storyIds.length; i += BATCH_SIZE) {
+      const batch = storyIds.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map((id) => this.hnApiService.getItem(id)),
+      );
+      fetchedStories.push(...results.filter((item): item is HnApiItem => item !== null));
+    }
+
+    let updated = 0;
+    let unchanged = 0;
+    for (const apiItem of fetchedStories) {
+      const dbItem = existingMap.get(apiItem.id)!;
+      const changes = this.diffFields(dbItem, apiItem);
+
+      if (Object.keys(changes).length > 0) {
+        await this.hnItemRepository.save(this.mapToEntity(apiItem));
+        updated++;
+
+        const summary = Object.entries(changes)
+          .map(([key, { old: oldVal, new: newVal }]) => `${key} ${oldVal}→${newVal}`)
+          .join(', ');
+        console.log(`  📝 Story ${apiItem.id} updated: ${summary}`);
+      } else {
+        unchanged++;
+      }
+    }
+
+    return { inserted, updated, unchanged, skippedNonStory };
   }
 
   private mapToEntity(apiItem: HnApiItem): Partial<HnItem> {
@@ -113,5 +142,40 @@ export class HnImportService {
       dead: apiItem.dead ?? false,
       deleted: apiItem.deleted ?? false,
     };
+  }
+
+  private diffFields(
+    dbItem: HnItem,
+    apiItem: HnApiItem,
+  ): Record<string, { old: any; new: any }> {
+    const changes: Record<string, { old: any; new: any }> = {};
+
+    const fields: {
+      key: string;
+      dbVal: any;
+      apiVal: any;
+    }[] = [
+        { key: 'score', dbVal: dbItem.score, apiVal: apiItem.score ?? null },
+        { key: 'descendants', dbVal: dbItem.descendants, apiVal: apiItem.descendants ?? null },
+        { key: 'title', dbVal: dbItem.title, apiVal: apiItem.title ?? null },
+        { key: 'text', dbVal: dbItem.text, apiVal: apiItem.text ?? null },
+        { key: 'url', dbVal: dbItem.url, apiVal: apiItem.url ?? null },
+        { key: 'by', dbVal: dbItem.by, apiVal: apiItem.by ?? null },
+        { key: 'dead', dbVal: dbItem.dead, apiVal: apiItem.dead ?? false },
+        { key: 'deleted', dbVal: dbItem.deleted, apiVal: apiItem.deleted ?? false },
+        {
+          key: 'kids',
+          dbVal: dbItem.kids?.length ?? 0,
+          apiVal: apiItem.kids?.length ?? 0,
+        },
+      ];
+
+    for (const { key, dbVal, apiVal } of fields) {
+      if (dbVal !== apiVal) {
+        changes[key] = { old: dbVal, new: apiVal };
+      }
+    }
+
+    return changes;
   }
 }

@@ -117,9 +117,9 @@ export class StreamUpdatesCommand extends CommandRunner {
     console.log(`[${timestamp}] Processing ${ids.length} item IDs...`);
 
     try {
-      const result = await this.hnImportService.insertMissing(ids);
+      const result = await this.hnImportService.syncItems(ids);
       console.log(
-        `  ✅ ${result.inserted} inserted, ${result.skipped} already in DB`,
+        `  ✅ ${result.inserted} inserted, ${result.updated} updated, ${result.unchanged} unchanged, ${result.skippedNonStory} non-story skipped`,
       );
     } catch (err) {
       console.error(`  ❌ Error:`, err.message ?? err);
