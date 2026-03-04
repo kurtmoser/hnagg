@@ -1,0 +1,168 @@
+.stories-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+// Loading
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 0;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Error
+.error {
+  text-align: center;
+  padding: 3rem 0;
+  color: #ef4444;
+
+  button {
+    margin-top: 1rem;
+    padding: 0.5rem 1.25rem;
+    background: #f97316;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+
+    &:hover {
+      background: #ea580c;
+    }
+  }
+}
+
+// Story list
+.story-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.story-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #fafafa;
+  }
+}
+
+.rank {
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: right;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.story-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.story-title-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.story-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #111827;
+  text-decoration: none;
+  line-height: 1.4;
+
+  &:hover {
+    color: #f97316;
+  }
+
+  &:visited {
+    color: #6b7280;
+  }
+
+  &.no-link {
+    cursor: default;
+  }
+}
+
+.story-domain {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.story-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+
+  .score {
+    color: #f97316;
+    font-weight: 500;
+  }
+}
+
+// Pagination
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1.25rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #f97316;
+    color: white;
+    border-color: #f97316;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
