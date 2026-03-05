@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { HnApiService, HnApiItem } from './hn-api.service';
 
@@ -15,6 +16,8 @@ export class HnImportService {
     private readonly hnItemRepository: Repository<HnItem>,
     @InjectRepository(ScoreSnapshot)
     private readonly scoreSnapshotRepository: Repository<ScoreSnapshot>,
+    @InjectRepository(DescendantsSnapshot)
+    private readonly descendantsSnapshotRepository: Repository<DescendantsSnapshot>,
   ) { }
 
   async importLatestStories(
@@ -50,11 +53,17 @@ export class HnImportService {
       await this.hnItemRepository.save(entity);
       imported++;
 
-      // Record initial score snapshot for new stories
+      // Record initial snapshots for new stories
       if (apiItem.score != null) {
         await this.scoreSnapshotRepository.save({
           itemId: apiItem.id,
           score: apiItem.score,
+        });
+      }
+      if (apiItem.descendants != null) {
+        await this.descendantsSnapshotRepository.save({
+          itemId: apiItem.id,
+          descendants: apiItem.descendants,
         });
       }
 
@@ -123,11 +132,17 @@ export class HnImportService {
         await this.hnItemRepository.save(this.mapToEntity(apiItem));
         updated++;
 
-        // Record score snapshot when score changes
+        // Record snapshots when values change
         if (changes.score && apiItem.score != null) {
           await this.scoreSnapshotRepository.save({
             itemId: apiItem.id,
             score: apiItem.score,
+          });
+        }
+        if (changes.descendants && apiItem.descendants != null) {
+          await this.descendantsSnapshotRepository.save({
+            itemId: apiItem.id,
+            descendants: apiItem.descendants,
           });
         }
 

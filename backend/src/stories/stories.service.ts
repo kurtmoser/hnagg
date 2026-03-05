@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, MoreThanOrEqual, Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { PaginatedResponseDto } from './dto/paginated-response.dto';
 import { Timeframe } from './dto/pagination-query.dto';
@@ -13,6 +14,8 @@ export class StoriesService {
     private readonly hnItemRepo: Repository<HnItem>,
     @InjectRepository(ScoreSnapshot)
     private readonly scoreSnapshotRepo: Repository<ScoreSnapshot>,
+    @InjectRepository(DescendantsSnapshot)
+    private readonly descendantsSnapshotRepo: Repository<DescendantsSnapshot>,
   ) { }
 
   async findPaginated(
@@ -55,6 +58,16 @@ export class StoriesService {
       where: { itemId },
       order: { recordedAt: 'ASC' },
       select: ['score', 'recordedAt'],
+    });
+  }
+
+  async getDescendantsHistory(
+    itemId: number,
+  ): Promise<Pick<DescendantsSnapshot, 'descendants' | 'recordedAt'>[]> {
+    return this.descendantsSnapshotRepo.find({
+      where: { itemId },
+      order: { recordedAt: 'ASC' },
+      select: ['descendants', 'recordedAt'],
     });
   }
 

@@ -1,5 +1,6 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { PaginatedResponseDto } from './dto/paginated-response.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
@@ -21,5 +22,12 @@ export class StoriesController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<Pick<ScoreSnapshot, 'score' | 'recordedAt'>[]> {
     return this.storiesService.getScoreHistory(id);
+  }
+
+  @Get(':id/descendants-history')
+  getDescendantsHistory(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Pick<DescendantsSnapshot, 'descendants' | 'recordedAt'>[]> {
+    return this.storiesService.getDescendantsHistory(id);
   }
 }
