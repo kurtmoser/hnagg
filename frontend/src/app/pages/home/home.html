@@ -1,67 +1,67 @@
 <section class="stories-container">
+  <div class="filter-bar">
+    <label for="timeframe-select">Show:</label>
+    <select id="timeframe-select" [ngModel]="selectedTimeframe()" (ngModelChange)="onTimeframeChange($event)">
+      @for (opt of timeframeOptions; track opt.value) {
+      <option [value]="opt.value">{{ opt.label }}</option>
+      }
+    </select>
+  </div>
   @if (loading() && stories().length === 0) {
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>Loading top stories…</p>
-    </div>
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Loading top stories…</p>
+  </div>
   }
 
   @if (error(); as err) {
-    <div class="error">
-      <p>{{ err }}</p>
-      <button (click)="loadPage(currentPage)">Retry</button>
-    </div>
+  <div class="error">
+    <p>{{ err }}</p>
+    <button (click)="loadPage(currentPage)">Retry</button>
+  </div>
   }
 
   @if (stories().length > 0) {
-    <ol class="story-list">
-      @for (story of stories(); track story.id; let i = $index) {
-        <li class="story-item">
-          <span class="rank">{{ rank(i) }}.</span>
-          <div class="story-content">
-            <div class="story-title-row">
-              @if (story.url) {
-                <a class="story-title" [href]="story.url" target="_blank" rel="noopener">
-                  {{ story.title }}
-                </a>
-                <span class="story-domain">({{ storyDomain(story.url) }})</span>
-              } @else {
-                <span class="story-title no-link">{{ story.title }}</span>
-              }
-            </div>
-            <div class="story-meta">
-              <span class="score">{{ story.score ?? 0 }} points</span>
-              @if (story.by) {
-                <span class="by">by {{ story.by }}</span>
-              }
-              <span class="time">{{ timeAgo(story.time) }}</span>
-              <span class="comments">{{ story.descendants ?? 0 }} comments</span>
-            </div>
-          </div>
-        </li>
-      }
-    </ol>
-
-    @if (meta(); as m) {
-      <nav class="pagination">
-        <button
-          class="pagination-btn"
-          [disabled]="m.page <= 1"
-          (click)="previousPage()"
-        >
-          ← Previous
-        </button>
-        <span class="page-info">
-          Page {{ m.page }} of {{ m.totalPages }}
-        </span>
-        <button
-          class="pagination-btn"
-          [disabled]="m.page >= m.totalPages"
-          (click)="nextPage()"
-        >
-          Next →
-        </button>
-      </nav>
+  <ol class="story-list">
+    @for (story of stories(); track story.id; let i = $index) {
+    <li class="story-item">
+      <span class="rank">{{ rank(i) }}.</span>
+      <div class="story-content">
+        <div class="story-title-row">
+          @if (story.url) {
+          <a class="story-title" [href]="story.url" target="_blank" rel="noopener">
+            {{ story.title }}
+          </a>
+          <span class="story-domain">({{ storyDomain(story.url) }})</span>
+          } @else {
+          <span class="story-title no-link">{{ story.title }}</span>
+          }
+        </div>
+        <div class="story-meta">
+          <span class="score">{{ story.score ?? 0 }} points</span>
+          @if (story.by) {
+          <span class="by">by {{ story.by }}</span>
+          }
+          <span class="time">{{ timeAgo(story.time) }}</span>
+          <span class="comments">{{ story.descendants ?? 0 }} comments</span>
+        </div>
+      </div>
+    </li>
     }
+  </ol>
+
+  @if (meta(); as m) {
+  <nav class="pagination">
+    <button class="pagination-btn" [disabled]="m.page <= 1" (click)="previousPage()">
+      ← Previous
+    </button>
+    <span class="page-info">
+      Page {{ m.page }} of {{ m.totalPages }}
+    </span>
+    <button class="pagination-btn" [disabled]="m.page >= m.totalPages" (click)="nextPage()">
+      Next →
+    </button>
+  </nav>
+  }
   }
 </section>

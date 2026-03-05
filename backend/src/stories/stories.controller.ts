@@ -12,6 +12,6 @@ export class StoriesController {
   findAll(
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<HnItem>> {
-    return this.storiesService.findPaginated(query.page, query.limit);
+    return this.storiesService.findPaginated(query.page, query.limit, query.timeframe);
   }
 }

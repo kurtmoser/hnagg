@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
 
@@ -6,9 +7,21 @@ import { PaginationMeta, Story } from '../../models/story.model';
   selector: 'app-home',
   templateUrl: './home.html',
   styleUrl: './home.scss',
+  imports: [FormsModule],
 })
 export class Home implements OnInit {
   private readonly storiesService = inject(StoriesService);
+
+  readonly timeframeOptions = [
+    { label: 'Past day', value: '1d' },
+    { label: 'Past 2 days', value: '2d' },
+    { label: 'Past 3 days', value: '3d' },
+    { label: 'Past 5 days', value: '5d' },
+    { label: 'Past week', value: '1w' },
+    { label: 'Past month', value: '1m' },
+    { label: 'All time', value: '' },
+  ];
+  readonly selectedTimeframe = signal('1d');
 
   readonly stories = signal<Story[]>([]);
   readonly meta = signal<PaginationMeta | null>(null);
@@ -22,8 +35,9 @@ export class Home implements OnInit {
   loadPage(page: number): void {
     this.loading.set(true);
     this.error.set(null);
+    const tf = this.selectedTimeframe();
 
-    this.storiesService.getStories(page).subscribe({
+    this.storiesService.getStories(page, 30, tf || undefined).subscribe({
       next: (response) => {
         this.stories.set(response.data);
         this.meta.set(response.meta);
@@ -49,6 +63,11 @@ export class Home implements OnInit {
     if (this.currentPage > 1) {
       this.loadPage(this.currentPage - 1);
     }
+  }
+
+  onTimeframeChange(value: string): void {
+    this.selectedTimeframe.set(value);
+    this.loadPage(1);
   }
 
   nextPage(): void {
