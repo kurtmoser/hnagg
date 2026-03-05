@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { HnApiService, HnApiItem } from './hn-api.service';
 
 const BATCH_SIZE = 2;
@@ -12,6 +13,8 @@ export class HnImportService {
     private readonly hnApiService: HnApiService,
     @InjectRepository(HnItem)
     private readonly hnItemRepository: Repository<HnItem>,
+    @InjectRepository(ScoreSnapshot)
+    private readonly scoreSnapshotRepository: Repository<ScoreSnapshot>,
   ) { }
 
   async importLatestStories(
@@ -46,6 +49,14 @@ export class HnImportService {
       const entity = this.mapToEntity(apiItem);
       await this.hnItemRepository.save(entity);
       imported++;
+
+      // Record initial score snapshot for new stories
+      if (apiItem.score != null) {
+        await this.scoreSnapshotRepository.save({
+          itemId: apiItem.id,
+          score: apiItem.score,
+        });
+      }
 
       if (imported % 10 === 0 || imported === stories.length) {
         const pct = Math.round((imported / stories.length) * 100);
@@ -111,6 +122,14 @@ export class HnImportService {
       if (Object.keys(changes).length > 0) {
         await this.hnItemRepository.save(this.mapToEntity(apiItem));
         updated++;
+
+        // Record score snapshot when score changes
+        if (changes.score && apiItem.score != null) {
+          await this.scoreSnapshotRepository.save({
+            itemId: apiItem.id,
+            score: apiItem.score,
+          });
+        }
 
         const summary = Object.entries(changes)
           .map(([key, { old: oldVal, new: newVal }]) => `${key} ${oldVal}→${newVal}`)
