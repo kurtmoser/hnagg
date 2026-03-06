@@ -6,7 +6,7 @@ import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.e
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { HnApiService, HnApiItem } from './hn-api.service';
 
-const BATCH_SIZE = 2;
+const BATCH_SIZE = 8;
 
 @Injectable()
 export class HnImportService {
