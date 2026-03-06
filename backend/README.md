@@ -34,27 +34,36 @@ All endpoints are prefixed with `/api`.
 | `import-data`      | One-off import of the latest 100 stories from HN API   |
 | `stream-updates`   | Long-running SSE listener that syncs item updates in real-time |
 
-## Getting Started
+## Setup
 
-### 1. Start all services
+> No host Node.js/npm required — everything runs inside Docker.
+
+### 1. Configure environment
+
+```bash
+cp .env.example .env
+# Edit .env — set strong DB credentials for production
+```
+
+### 2. Start all services
 
 ```bash
 docker compose up -d --build
 ```
 
-### 2. Run database migrations
+### 3. Run database migrations
 
 ```bash
-docker compose exec backend node ./node_modules/.bin/typeorm migration:run -d dist/data-source.js
+docker compose exec backend npm run migration:run
 ```
 
-### 3. Import initial data
+### 4. Import initial data
 
 ```bash
 docker compose exec backend node dist/cli/cli-main.js import-data
 ```
 
-### 4. Stream live updates
+### 5. Stream live updates
 
 ```bash
 docker compose exec backend node dist/cli/cli-main.js stream-updates
@@ -62,26 +71,33 @@ docker compose exec backend node dist/cli/cli-main.js stream-updates
 
 This connects to the HN SSE endpoint and continuously syncs item changes. Score and descendants snapshots are automatically recorded when values change.
 
+---
+
 ## Local Development
 
-```bash
-cd backend
-npm install
-npm run start:dev
+For development with hot-reload, add a `docker-compose.override.yml`:
+
+```yaml
+services:
+  backend:
+    command: npm run start:dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
 ```
 
-### Migrations (local)
+Then restart: `docker compose up -d`
+
+### Useful commands
 
 ```bash
-cd backend
-npm run build
-npm run migration:run
-```
+# Create a new migration
+docker compose exec backend npm run migration:create
 
-### Creating a new migration
+# Revert the last migration
+docker compose exec backend npm run migration:revert
 
-```bash
-cd backend
-npm run migration:create
-# Edit the generated file in src/database/migrations/
+# Lint & test
+docker compose exec backend npm run lint
+docker compose exec backend npm test
 ```
