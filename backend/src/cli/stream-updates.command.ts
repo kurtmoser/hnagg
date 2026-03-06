@@ -33,8 +33,10 @@ export class StreamUpdatesCommand extends CommandRunner {
       { headers: { Accept: 'text/event-stream' } },
       (res) => {
         if (res.statusCode !== 200) {
-          console.error(`❌ Unexpected status: ${res.statusCode}`);
-          process.exit(1);
+          console.error(`❌ Unexpected status: ${res.statusCode}, reconnecting in 3s...`);
+          res.resume();
+          setTimeout(() => this.connect(), 3000);
+          return;
         }
 
         let buffer = '';
