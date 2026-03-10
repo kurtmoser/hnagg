@@ -28,8 +28,11 @@ Available at `http://localhost:4200`.
 On the production server, the override file is skipped so the frontend joins the external `traefik-network` and Traefik picks up the routing labels automatically.
 
 ```bash
-docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml build --no-cache frontend
+docker compose -f docker-compose.yml up -d --force-recreate frontend
 ```
+
+Note: `--force-recreate` is needed for the container to pick up the new image.
 
 Served at `https://hnagg.com` via Traefik with auto-provisioned Let's Encrypt TLS.
 
