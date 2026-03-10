@@ -1,0 +1,5 @@
+# Local development overrides - automatically loaded by docker compose up
+# On production use: docker compose -f docker-compose.yml up -d  (skips this file)
+networks:
+  traefik-network:
+    external: false
