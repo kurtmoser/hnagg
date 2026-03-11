@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
 
@@ -11,6 +12,8 @@ import { PaginationMeta, Story } from '../../models/story.model';
 })
 export class Home implements OnInit {
   private readonly storiesService = inject(StoriesService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly timeframeOptions = [
     { label: 'Past day', value: '1d' },
@@ -27,17 +30,32 @@ export class Home implements OnInit {
   readonly meta = signal<PaginationMeta | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly activeDate = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.loadPage(1);
+    this.route.queryParamMap.subscribe((params) => {
+      const date = params.get('date');
+      const timeframe = params.get('timeframe');
+
+      if (date) {
+        this.activeDate.set(date);
+        this.selectedTimeframe.set('');
+      } else {
+        this.activeDate.set(null);
+        this.selectedTimeframe.set(timeframe || '1d');
+      }
+
+      this.loadPage(1);
+    });
   }
 
   loadPage(page: number): void {
     this.loading.set(true);
     this.error.set(null);
-    const tf = this.selectedTimeframe();
+    const date = this.activeDate();
+    const tf = date ? undefined : this.selectedTimeframe() || undefined;
 
-    this.storiesService.getStories(page, 30, tf || undefined).subscribe({
+    this.storiesService.getStories(page, 30, tf, date ?? undefined).subscribe({
       next: (response) => {
         this.stories.set(response.data);
         this.meta.set(response.meta);
@@ -66,8 +84,11 @@ export class Home implements OnInit {
   }
 
   onTimeframeChange(value: string): void {
-    this.selectedTimeframe.set(value);
-    this.loadPage(1);
+    if (value) {
+      this.router.navigate(['/'], { queryParams: { timeframe: value } });
+    } else {
+      this.router.navigate(['/'], { queryParams: {} });
+    }
   }
 
   nextPage(): void {

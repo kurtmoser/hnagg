@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
@@ -14,7 +21,21 @@ export class StoriesController {
   findAll(
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<HnItem>> {
-    return this.storiesService.findPaginated(query.page, query.limit, query.timeframe);
+    if (query.date && query.timeframe) {
+      throw new BadRequestException(
+        'date and timeframe are mutually exclusive',
+      );
+    }
+    if (query.period && !query.date) {
+      throw new BadRequestException('period requires date to be specified');
+    }
+    return this.storiesService.findPaginated(
+      query.page,
+      query.limit,
+      query.timeframe,
+      query.date,
+      query.period,
+    );
   }
 
   @Get(':id/score-history')

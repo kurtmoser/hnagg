@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, MoreThanOrEqual, Repository } from 'typeorm';
+import {
+  And,
+  FindOptionsWhere,
+  LessThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { PaginatedResponseDto } from './dto/paginated-response.dto';
-import { Timeframe } from './dto/pagination-query.dto';
+import { Period, Timeframe } from './dto/pagination-query.dto';
 
 @Injectable()
 export class StoriesService {
@@ -22,6 +28,8 @@ export class StoriesService {
     page: number,
     limit: number,
     timeframe?: Timeframe,
+    date?: string,
+    period: Period = 'day',
   ): Promise<PaginatedResponseDto<HnItem>> {
     const where: FindOptionsWhere<HnItem> = {
       type: 'story',
@@ -29,7 +37,10 @@ export class StoriesService {
       dead: false,
     };
 
-    if (timeframe) {
+    if (date) {
+      const { start, end } = this.dateToBounds(date, period);
+      where.time = And(MoreThanOrEqual(start), LessThan(end));
+    } else if (timeframe) {
       where.time = MoreThanOrEqual(this.timeframeToCutoff(timeframe));
     }
 
@@ -69,6 +80,20 @@ export class StoriesService {
       order: { recordedAt: 'ASC' },
       select: ['descendants', 'recordedAt'],
     });
+  }
+
+  private dateToBounds(
+    date: string,
+    period: Period,
+  ): { start: Date; end: Date } {
+    switch (period) {
+      case 'day': {
+        const start = new Date(`${date}T00:00:00Z`);
+        const end = new Date(start);
+        end.setUTCDate(end.getUTCDate() + 1);
+        return { start, end };
+      }
+    }
   }
 
   private timeframeToCutoff(timeframe: Timeframe): Date {
