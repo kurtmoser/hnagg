@@ -43,7 +43,7 @@
           <span class="by">by {{ story.by }}</span>
           }
           <span class="time">{{ timeAgo(story.time) }}</span>
-          <span class="comments">{{ story.descendants ?? 0 }} comments</span>
+          <a class="comments" [href]="'https://news.ycombinator.com/item?id=' + story.id" target="_blank" rel="noopener">{{ story.descendants ?? 0 }} comments</a>
         </div>
       </div>
     </li>

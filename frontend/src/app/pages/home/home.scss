@@ -130,6 +130,15 @@
     color: #f97316;
     font-weight: 500;
   }
+
+  .comments {
+    color: inherit;
+    text-decoration: underline;
+
+    &:visited {
+      color: inherit;
+    }
+  }
 }
 
 // Pagination
