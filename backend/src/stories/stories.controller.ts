@@ -21,20 +21,14 @@ export class StoriesController {
   findAll(
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<HnItem>> {
-    if (query.date && query.timeframe) {
-      throw new BadRequestException(
-        'date and timeframe are mutually exclusive',
-      );
-    }
-    if (query.period && !query.date) {
-      throw new BadRequestException('period requires date to be specified');
+    if (query.to && !query.from) {
+      throw new BadRequestException('to requires from to be specified');
     }
     return this.storiesService.findPaginated(
       query.page,
       query.limit,
-      query.timeframe,
-      query.date,
-      query.period,
+      query.from,
+      query.to,
     );
   }
 

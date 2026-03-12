@@ -1,12 +1,4 @@
 <section class="stories-container">
-  <div class="filter-bar">
-    <label for="timeframe-select">Show:</label>
-    <select id="timeframe-select" [ngModel]="selectedTimeframe()" (ngModelChange)="onTimeframeChange($event)">
-      @for (opt of timeframeOptions; track opt.value) {
-      <option [value]="opt.value">{{ opt.label }}</option>
-      }
-    </select>
-  </div>
   @if (loading() && stories().length === 0) {
   <div class="loading">
     <div class="spinner"></div>

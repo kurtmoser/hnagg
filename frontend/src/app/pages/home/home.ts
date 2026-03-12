@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
 
@@ -8,23 +7,11 @@ import { PaginationMeta, Story } from '../../models/story.model';
   selector: 'app-home',
   templateUrl: './home.html',
   styleUrl: './home.scss',
-  imports: [FormsModule],
+  imports: [],
 })
 export class Home implements OnInit {
   private readonly storiesService = inject(StoriesService);
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-
-  readonly timeframeOptions = [
-    { label: 'Past day', value: '1d' },
-    { label: 'Past 2 days', value: '2d' },
-    { label: 'Past 3 days', value: '3d' },
-    { label: 'Past 5 days', value: '5d' },
-    { label: 'Past week', value: '1w' },
-    { label: 'Past month', value: '1m' },
-    { label: 'All time', value: '' },
-  ];
-  readonly selectedTimeframe = signal('1d');
 
   readonly stories = signal<Story[]>([]);
   readonly meta = signal<PaginationMeta | null>(null);
@@ -35,16 +22,7 @@ export class Home implements OnInit {
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
       const date = params.get('date');
-      const timeframe = params.get('timeframe');
-
-      if (date) {
-        this.activeDate.set(date);
-        this.selectedTimeframe.set('');
-      } else {
-        this.activeDate.set(null);
-        this.selectedTimeframe.set(timeframe || '1d');
-      }
-
+      this.activeDate.set(date);
       this.loadPage(1);
     });
   }
@@ -53,9 +31,9 @@ export class Home implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     const date = this.activeDate();
-    const tf = date ? undefined : this.selectedTimeframe() || undefined;
+    const { from, to } = date ? this.dateToRange(date) : {};
 
-    this.storiesService.getStories(page, 30, tf, date ?? undefined).subscribe({
+    this.storiesService.getStories(page, 30, from, to).subscribe({
       next: (response) => {
         this.stories.set(response.data);
         this.meta.set(response.meta);
@@ -83,12 +61,10 @@ export class Home implements OnInit {
     }
   }
 
-  onTimeframeChange(value: string): void {
-    if (value) {
-      this.router.navigate(['/'], { queryParams: { timeframe: value } });
-    } else {
-      this.router.navigate(['/'], { queryParams: {} });
-    }
+  private dateToRange(date: string): { from: string; to: string } {
+    const d = new Date(`${date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return { from: date, to: d.toISOString().slice(0, 10) };
   }
 
   nextPage(): void {

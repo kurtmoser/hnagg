@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -67,7 +67,7 @@ interface DateLink {
     }
   `],
 })
-export class DateBar {
+export class DateBar implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -104,13 +104,19 @@ export class DateBar {
     return links;
   });
 
-  selectDate(date: string): void {
-    const current = this.selectedDate();
-    if (current === date) {
-      // Clicking active date clears the filter
-      this.router.navigate(['/'], { queryParams: {} });
-    } else {
-      this.router.navigate(['/'], { queryParams: { date } });
+  ngOnInit(): void {
+    // If no date param is present, redirect to today so "Today" is always selected by default
+    const currentDate = this.route.snapshot.queryParamMap.get('date');
+    if (!currentDate) {
+      const now = new Date();
+      const iso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+        .toISOString()
+        .slice(0, 10);
+      this.router.navigate(['/'], { queryParams: { date: iso }, replaceUrl: true });
     }
+  }
+
+  selectDate(date: string): void {
+    this.router.navigate(['/'], { queryParams: { date } });
   }
 }

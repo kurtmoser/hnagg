@@ -7,14 +7,10 @@ import { PaginatedResponse, Story } from '../models/story.model';
 export class StoriesService {
   private readonly http = inject(HttpClient);
 
-  getStories(page = 1, limit = 30, timeframe?: string, date?: string): Observable<PaginatedResponse<Story>> {
+  getStories(page = 1, limit = 30, from?: string, to?: string): Observable<PaginatedResponse<Story>> {
     const params: Record<string, string | number> = { page, limit };
-    if (timeframe) {
-      params['timeframe'] = timeframe;
-    }
-    if (date) {
-      params['date'] = date;
-    }
+    if (from) params['from'] = from;
+    if (to) params['to'] = to;
     return this.http.get<PaginatedResponse<Story>>('/api/stories', { params });
   }
 }

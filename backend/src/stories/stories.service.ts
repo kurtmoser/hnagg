@@ -11,7 +11,6 @@ import { HnItem } from '../database/entities/hn-item.entity';
 import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { PaginatedResponseDto } from './dto/paginated-response.dto';
-import { Period, Timeframe } from './dto/pagination-query.dto';
 
 @Injectable()
 export class StoriesService {
@@ -27,9 +26,8 @@ export class StoriesService {
   async findPaginated(
     page: number,
     limit: number,
-    timeframe?: Timeframe,
-    date?: string,
-    period: Period = 'day',
+    from?: string,
+    to?: string,
   ): Promise<PaginatedResponseDto<HnItem>> {
     const where: FindOptionsWhere<HnItem> = {
       type: 'story',
@@ -37,11 +35,15 @@ export class StoriesService {
       dead: false,
     };
 
-    if (date) {
-      const { start, end } = this.dateToBounds(date, period);
-      where.time = And(MoreThanOrEqual(start), LessThan(end));
-    } else if (timeframe) {
-      where.time = MoreThanOrEqual(this.timeframeToCutoff(timeframe));
+    if (from && to) {
+      where.time = And(
+        MoreThanOrEqual(new Date(`${from}T00:00:00Z`)),
+        LessThan(new Date(`${to}T00:00:00Z`)),
+      );
+    } else if (from) {
+      where.time = MoreThanOrEqual(new Date(`${from}T00:00:00Z`));
+    } else if (to) {
+      where.time = LessThan(new Date(`${to}T00:00:00Z`));
     }
 
     const [data, totalItems] = await this.hnItemRepo.findAndCount({
@@ -80,33 +82,5 @@ export class StoriesService {
       order: { recordedAt: 'ASC' },
       select: ['descendants', 'recordedAt'],
     });
-  }
-
-  private dateToBounds(
-    date: string,
-    period: Period,
-  ): { start: Date; end: Date } {
-    switch (period) {
-      case 'day': {
-        const start = new Date(`${date}T00:00:00Z`);
-        const end = new Date(start);
-        end.setUTCDate(end.getUTCDate() + 1);
-        return { start, end };
-      }
-    }
-  }
-
-  private timeframeToCutoff(timeframe: Timeframe): Date {
-    const now = new Date();
-    const daysMap: Record<Timeframe, number> = {
-      '1d': 1,
-      '2d': 2,
-      '3d': 3,
-      '5d': 5,
-      '1w': 7,
-      '1m': 30,
-    };
-    now.setDate(now.getDate() - daysMap[timeframe]);
-    return now;
   }
 }
