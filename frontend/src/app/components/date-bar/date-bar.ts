@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map } from 'rxjs';
+import { filter, map, startWith } from 'rxjs';
 
 interface DateLink {
   label: string;
@@ -69,11 +69,26 @@ interface DateLink {
 })
 export class DateBar implements OnInit {
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
+
+  private readonly todayIso = (): string => {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      .toISOString()
+      .slice(0, 10);
+  };
+
+  private readonly dateFromUrl = (url: string): string => {
+    const m = url.match(/^\/date\/([\d-]+)/);
+    return m ? m[1] : this.todayIso();
+  };
 
   readonly selectedDate = toSignal(
-    this.route.queryParamMap.pipe(map((params) => params.get('date') ?? '')),
-    { initialValue: '' },
+    this.router.events.pipe(
+      filter((e) => e instanceof NavigationEnd),
+      map((e) => this.dateFromUrl((e as NavigationEnd).urlAfterRedirects)),
+      startWith(this.dateFromUrl(this.router.url)),
+    ),
+    { initialValue: this.dateFromUrl(this.router.url) },
   );
 
   readonly dateLinks = computed<DateLink[]>(() => {
@@ -104,19 +119,9 @@ export class DateBar implements OnInit {
     return links;
   });
 
-  ngOnInit(): void {
-    // If no date param is present, redirect to today so "Today" is always selected by default
-    const currentDate = this.route.snapshot.queryParamMap.get('date');
-    if (!currentDate) {
-      const now = new Date();
-      const iso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-        .toISOString()
-        .slice(0, 10);
-      this.router.navigate(['/'], { queryParams: { date: iso }, replaceUrl: true });
-    }
-  }
+  ngOnInit(): void {}
 
   selectDate(date: string): void {
-    this.router.navigate(['/'], { queryParams: { date } });
+    this.router.navigate(['/date', date]);
   }
 }

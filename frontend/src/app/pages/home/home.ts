@@ -20,11 +20,19 @@ export class Home implements OnInit {
   readonly activeDate = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.route.queryParamMap.subscribe((params) => {
-      const date = params.get('date');
+    this.route.paramMap.subscribe((params) => {
+      const param = params.get('date');
+      const date = param ?? this.todayIso();
       this.activeDate.set(date);
       this.loadPage(1);
     });
+  }
+
+  private todayIso(): string {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      .toISOString()
+      .slice(0, 10);
   }
 
   loadPage(page: number): void {
