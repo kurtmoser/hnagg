@@ -35,7 +35,8 @@ All endpoints are prefixed with `/api`.
 |--------------------|---------------------------------------------------------|
 | `import-data`      | One-off import of the latest 100 stories from HN API   |
 | `stream-updates`   | Long-running SSE listener that syncs item updates in real-time |
-| `extract-og-image <itemId>` | Extract OG metadata and download image for a story |
+| `fetch-og-metadata <itemId>` | Fetch OG metadata and download image for a single story |
+| `fetch-og-metadata-for-date <YYYY-MM-DD>` | Fetch OG metadata for the top 150 stories on a given date (skips items that already have metadata) |
 
 ## Setup
 
@@ -74,13 +75,17 @@ docker compose exec backend node dist/cli/cli-main.js stream-updates
 
 This connects to the HN SSE endpoint and continuously syncs item changes. Score and descendants snapshots are automatically recorded when values change.
 
-### 6. Extract OpenGraph metadata for a story
+### 6. Fetch OpenGraph metadata
 
 ```bash
-docker compose exec backend node dist/cli/cli-main.js extract-og-image <item-id>
+# Single story
+docker compose exec backend node dist/cli/cli-main.js fetch-og-metadata <item-id>
+
+# All top stories for a date (skips already-processed items)
+docker compose exec backend node dist/cli/cli-main.js fetch-og-metadata-for-date <yyyy-mm-dd>
 ```
 
-This fetches the story's URL, extracts `og:image` and `og:description` meta tags, downloads the image to `./images/`, and saves the metadata to the database. The downloaded images are served at `/api/images/:filename` and included in the `/api/stories` response via the `metadata` relation.
+This fetches story URLs, extracts `og:image` and `og:description` meta tags, downloads images to `./images/`, and saves the metadata to the database. The downloaded images are served at `/api/images/:filename` and included in the `/api/stories` response via the `metadata` relation.
 
 ---
 
