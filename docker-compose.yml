@@ -48,6 +48,15 @@ services:
       - "traefik.http.routers.hnagg.tls=true"
       - "traefik.http.routers.hnagg.tls.certresolver=letsencrypt"
       - "traefik.http.services.hnagg.loadbalancer.server.port=80"
+      # www → non-www redirect
+      - "traefik.http.routers.hnagg-www.rule=Host(`www.hnagg.com`)"
+      - "traefik.http.routers.hnagg-www.entrypoints=websecure"
+      - "traefik.http.routers.hnagg-www.tls=true"
+      - "traefik.http.routers.hnagg-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hnagg-www.middlewares=hnagg-www-redirect"
+      - "traefik.http.middlewares.hnagg-www-redirect.redirectregex.regex=^https://www\\.hnagg\\.com(.*)"
+      - "traefik.http.middlewares.hnagg-www-redirect.redirectregex.replacement=https://hnagg.com$${1}"
+      - "traefik.http.middlewares.hnagg-www-redirect.redirectregex.permanent=true"
 
 volumes:
   pgdata:
