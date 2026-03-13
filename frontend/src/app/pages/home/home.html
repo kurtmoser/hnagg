@@ -53,17 +53,15 @@
     }
   </ol>
 
-  @if (meta(); as m) {
+  @if (pageNumbers.length > 1) {
   <nav class="pagination">
-    <button class="pagination-btn" [disabled]="m.page <= 1" (click)="previousPage()">
-      ← Previous
-    </button>
-    <span class="page-info">
-      Page {{ m.page }} of {{ m.totalPages }}
-    </span>
-    <button class="pagination-btn" [disabled]="m.page >= m.totalPages" (click)="nextPage()">
-      Next →
-    </button>
+    @for (p of pageNumbers; track p) {
+      @if (p === currentPage) {
+        <span class="page-link active">{{ p }}</span>
+      } @else {
+        <a class="page-link" [routerLink]="pageLink(p)">{{ p }}</a>
+      }
+    }
   </nav>
   }
   }

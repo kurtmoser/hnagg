@@ -1,30 +1,44 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
+
+const MAX_PAGES = 5;
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.html',
   styleUrl: './home.scss',
-  imports: [],
+  imports: [RouterLink],
 })
 export class Home implements OnInit {
   private readonly storiesService = inject(StoriesService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly stories = signal<Story[]>([]);
   readonly meta = signal<PaginationMeta | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly activeDate = signal<string | null>(null);
+  readonly activePage = signal(1);
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       const param = params.get('date');
       const date = param ?? this.todayIso();
+      const pageParam = params.get('page');
+      const page = pageParam ? parseInt(pageParam, 10) : 1;
+
+      if (page > MAX_PAGES || page < 1 || isNaN(page)) {
+        this.router.navigate(['/date', date], { replaceUrl: true });
+        return;
+      }
+
       this.activeDate.set(date);
-      this.loadPage(1);
+      this.activePage.set(page);
+      this.loadPage(page);
+      window.scrollTo(0, 0);
     });
   }
 
@@ -60,25 +74,27 @@ export class Home implements OnInit {
   }
 
   get totalPages(): number {
-    return this.meta()?.totalPages ?? 0;
+    return Math.min(this.meta()?.totalPages ?? 0, MAX_PAGES);
   }
 
-  previousPage(): void {
-    if (this.currentPage > 1) {
-      this.loadPage(this.currentPage - 1);
+  get pageNumbers(): number[] {
+    const pages: number[] = [];
+    for (let i = 1; i <= this.totalPages; i++) {
+      pages.push(i);
     }
+    return pages;
+  }
+
+  pageLink(page: number): string {
+    const date = this.activeDate();
+    if (page <= 1) return `/date/${date}`;
+    return `/date/${date}/${page}`;
   }
 
   private dateToRange(date: string): { from: string; to: string } {
     const d = new Date(`${date}T00:00:00Z`);
     d.setUTCDate(d.getUTCDate() + 1);
     return { from: date, to: d.toISOString().slice(0, 10) };
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.loadPage(this.currentPage + 1);
-    }
   }
 
   timeAgo(dateString: string): string {

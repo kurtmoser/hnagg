@@ -109,7 +109,7 @@ export class DateBar implements OnInit {
   };
 
   private readonly dateFromUrl = (url: string): string => {
-    const m = url.match(/^\/date\/([\d-]+)/);
+    const m = url.match(/^\/date\/(\d{4}-\d{2}-\d{2})/);
     return m ? m[1] : this.todayIso();
   };
 
