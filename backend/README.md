@@ -15,6 +15,7 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 - **`hn_items`** — Stores HackerNews items (stories, comments, etc.) with all fields from the HN API.
 - **`score_snapshots`** — Records point-in-time score values for stories. A new row is inserted on first import and whenever a score change is detected during sync.
 - **`descendants_snapshots`** — Records point-in-time comment count (descendants) values for stories, same logic as score snapshots.
+- **`hn_items_metadata`** — Stores OpenGraph metadata (og:image, og:description) and local image paths for stories.
 
 ### API Endpoints
 
@@ -26,6 +27,7 @@ All endpoints are prefixed with `/api`.
 | GET    | `/api/stories?timeframe=1d`         | Filter by timeframe: `1d`, `2d`, `3d`, `5d`, `1w`, `1m` |
 | GET    | `/api/stories/:id/score-history`    | Score snapshots over time for a story    |
 | GET    | `/api/stories/:id/descendants-history` | Comment count snapshots over time     |
+| GET    | `/api/images/:filename`                | Serves locally stored OG images       |
 
 ### CLI Commands
 
@@ -33,6 +35,7 @@ All endpoints are prefixed with `/api`.
 |--------------------|---------------------------------------------------------|
 | `import-data`      | One-off import of the latest 100 stories from HN API   |
 | `stream-updates`   | Long-running SSE listener that syncs item updates in real-time |
+| `extract-og-image <itemId>` | Extract OG metadata and download image for a story |
 
 ## Setup
 
@@ -70,6 +73,14 @@ docker compose exec backend node dist/cli/cli-main.js stream-updates
 ```
 
 This connects to the HN SSE endpoint and continuously syncs item changes. Score and descendants snapshots are automatically recorded when values change.
+
+### 6. Extract OpenGraph metadata for a story
+
+```bash
+docker compose exec backend node dist/cli/cli-main.js extract-og-image <item-id>
+```
+
+This fetches the story's URL, extracts `og:image` and `og:description` meta tags, downloads the image to `./images/`, and saves the metadata to the database. The downloaded images are served at `/api/images/:filename` and included in the `/api/stories` response via the `metadata` relation.
 
 ---
 

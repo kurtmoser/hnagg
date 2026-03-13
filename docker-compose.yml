@@ -18,6 +18,8 @@ services:
       context: ./backend
     ports:
       - "50142:3000"
+    volumes:
+      - ./images:/app/images
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT}

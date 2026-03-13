@@ -3,9 +3,11 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToOne,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { HnItemMetadata } from './hn-item-metadata.entity';
 
 @Entity('hn_items')
 export class HnItem {
@@ -56,6 +58,9 @@ export class HnItem {
 
   @Column({ type: 'boolean', default: false })
   deleted: boolean;
+
+  @OneToOne(() => HnItemMetadata, (m) => m.hnItem, { eager: false })
+  metadata?: HnItemMetadata;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;

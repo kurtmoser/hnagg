@@ -15,8 +15,17 @@ export class HnItemMetadata {
   id: number;
 
   @OneToOne(() => HnItem)
-  @JoinColumn()
+  @JoinColumn({ name: 'id' })
   hnItem: HnItem;
+
+  @Column({ type: 'text', nullable: true })
+  og_image: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  og_description: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  local_image_path: string | null;
 
   @Column({ type: 'text', nullable: true })
   tiny_description: string | null;
