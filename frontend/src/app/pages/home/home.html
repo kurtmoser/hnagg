@@ -19,6 +19,16 @@
     <li class="story-item">
       <span class="rank">{{ rank(i) }}.</span>
       <div class="story-content">
+        @if (story.metadata?.local_image_path) {
+          <a [href]="story.url" target="_blank" rel="noopener">
+            <img class="story-image" [src]="'/api/images/' + story.metadata!.local_image_path" [alt]="story.title" loading="lazy" />
+          </a>
+        } @else {
+          <a [href]="story.url" target="_blank" rel="noopener">
+            <div class="story-image-placeholder"></div>
+          </a>
+        }
+        <div class="story-text">
         <div class="story-title-row">
           @if (story.url) {
           <a class="story-title" [href]="story.url" target="_blank" rel="noopener">
@@ -36,6 +46,7 @@
           }
           <span class="time">{{ timeAgo(story.time) }}</span>
           <a class="comments" [href]="'https://news.ycombinator.com/item?id=' + story.id" target="_blank" rel="noopener">{{ story.descendants ?? 0 }} comments</a>
+        </div>
         </div>
       </div>
     </li>

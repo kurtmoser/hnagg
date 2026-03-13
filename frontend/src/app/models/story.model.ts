@@ -6,6 +6,9 @@ export interface Story {
   by: string | null;
   time: string;
   descendants: number | null;
+  metadata?: {
+    local_image_path: string | null;
+  } | null;
 }
 
 export interface PaginationMeta {

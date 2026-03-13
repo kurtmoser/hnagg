@@ -60,7 +60,7 @@
 
 .story-item {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 0;
   border-bottom: 1px solid #f3f4f6;
@@ -81,6 +81,14 @@
 }
 
 .story-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.story-text {
   flex: 1;
   min-width: 0;
 }
@@ -116,6 +124,23 @@
   font-size: 0.75rem;
   color: #9ca3af;
   white-space: nowrap;
+}
+
+.story-image,
+.story-image-placeholder {
+  flex-shrink: 0;
+  width: 80px;
+  height: 60px;
+  border-radius: 6px;
+}
+
+.story-image {
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+}
+
+.story-image-placeholder {
+  background: #f3f4f6;
 }
 
 .story-meta {
