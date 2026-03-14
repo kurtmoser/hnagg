@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
 
 const MAX_PAGES = 5;
 const MIN_DATE = '2026-03-01';
+const SWIPE_THRESHOLD = 50;
 
 @Component({
   selector: 'app-home',
@@ -13,6 +14,8 @@ const MIN_DATE = '2026-03-01';
   imports: [RouterLink],
 })
 export class Home implements OnInit {
+  private touchStartX = 0;
+  private touchStartY = 0;
   private readonly storiesService = inject(StoriesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -23,6 +26,43 @@ export class Home implements OnInit {
   readonly error = signal<string | null>(null);
   readonly activeDate = signal<string | null>(null);
   readonly activePage = signal(1);
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent): void {
+    this.touchStartX = event.changedTouches[0].clientX;
+    this.touchStartY = event.changedTouches[0].clientY;
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(event: TouchEvent): void {
+    const deltaX = event.changedTouches[0].clientX - this.touchStartX;
+    const deltaY = event.changedTouches[0].clientY - this.touchStartY;
+
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const date = this.activeDate();
+      if (!date) return;
+
+      if (deltaX > 0) {
+        // Swipe right → next day (newer)
+        const next = this.addDays(date, 1);
+        if (next <= this.todayIso()) {
+          this.router.navigate(['/date', next]);
+        }
+      } else {
+        // Swipe left → previous day (older)
+        const prev = this.addDays(date, -1);
+        if (prev >= MIN_DATE) {
+          this.router.navigate(['/date', prev]);
+        }
+      }
+    }
+  }
+
+  private addDays(date: string, days: number): string {
+    const d = new Date(`${date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
