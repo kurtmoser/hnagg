@@ -4,6 +4,7 @@ import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
 
 const MAX_PAGES = 5;
+const MIN_DATE = '2026-03-01';
 
 @Component({
   selector: 'app-home',
@@ -29,6 +30,11 @@ export class Home implements OnInit {
       const date = param ?? this.todayIso();
       const pageParam = params.get('page');
       const page = pageParam ? parseInt(pageParam, 10) : 1;
+
+      if (param && (date < MIN_DATE || date > this.todayIso())) {
+        this.router.navigate(['/'], { replaceUrl: true });
+        return;
+      }
 
       if (page > MAX_PAGES || page < 1 || isNaN(page)) {
         this.router.navigate(['/date', date], { replaceUrl: true });

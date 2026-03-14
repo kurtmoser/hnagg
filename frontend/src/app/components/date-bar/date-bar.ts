@@ -3,6 +3,8 @@ import { Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 
+const MIN_DATE = '2026-03-01';
+
 interface DateLink {
   label: string;
   date: string; // YYYY-MM-DD
@@ -25,7 +27,9 @@ interface DateLink {
           >{{ link.label }}</button>
         }
 
-        <button class="nav-btn" (click)="prevWeek()" title="Previous week">&#8250;</button>
+        @if (!atMinDate()) {
+          <button class="nav-btn" (click)="prevWeek()" title="Previous week">&#8250;</button>
+        }
       </div>
     </nav>
   `,
@@ -156,10 +160,17 @@ export class DateBar implements OnInit {
         });
       }
 
-      links.push({ label, date: iso });
+      if (iso >= MIN_DATE) {
+        links.push({ label, date: iso });
+      }
     }
 
     return links;
+  });
+
+  readonly atMinDate = computed(() => {
+    const links = this.dateLinks();
+    return links.length > 0 && links[links.length - 1].date === MIN_DATE;
   });
 
   ngOnInit(): void {
