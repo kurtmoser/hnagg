@@ -1,4 +1,4 @@
-import { Command, CommandRunner } from 'nest-commander';
+import { Command, CommandRunner, Option } from 'nest-commander';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
@@ -19,8 +19,10 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
     super();
   }
 
-  async run(params: string[]): Promise<void> {
+  async run(params: string[], options?: { force?: boolean }): Promise<void> {
     const dateStr = params[0];
+    const force = options?.force ?? false;
+
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       console.error('Invalid date format. Expected YYYY-MM-DD.');
       process.exitCode = 1;
@@ -31,7 +33,7 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
     const to = new Date(from);
     to.setUTCDate(to.getUTCDate() + 1);
 
-    const items = await this.hnItemRepo
+    const qb = this.hnItemRepo
       .createQueryBuilder('item')
       .leftJoin('hn_items_metadata', 'meta', 'meta.id = item.id')
       .where('item.type = :type', { type: 'story' })
@@ -39,13 +41,19 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
       .andWhere('item.dead = false')
       .andWhere('item.time >= :from', { from })
       .andWhere('item.time < :to', { to })
-      .andWhere('meta.id IS NULL')
       .andWhere('item.url IS NOT NULL')
       .orderBy('item.score', 'DESC', 'NULLS LAST')
-      .limit(150)
-      .getMany();
+      .limit(150);
 
-    console.log(`Found ${items.length} stories without metadata for ${dateStr}`);
+    if (!force) {
+      qb.andWhere('meta.id IS NULL');
+    }
+
+    const items = await qb.getMany();
+
+    console.log(
+      `Found ${items.length} stories ${force ? '(force mode)' : 'without metadata'} for ${dateStr}`,
+    );
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -54,6 +62,9 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
       );
 
       try {
+        if (force) {
+          await this.ogMetadataService.deleteLocalImage(item.id);
+        }
         await this.ogMetadataService.fetchAndStoreOgMetadata(item.id, item.url!);
       } catch (err) {
         console.error(`Failed for item ${item.id}: ${err.message ?? err}`);
@@ -61,5 +72,13 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
     }
 
     console.log('Done.');
+  }
+
+  @Option({
+    flags: '--force',
+    description: 'Refetch OG metadata for all items, even if they already have metadata',
+  })
+  parseForce(): boolean {
+    return true;
   }
 }

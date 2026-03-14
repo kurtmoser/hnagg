@@ -15,6 +15,17 @@ export class OgMetadataService {
     private readonly metadataRepo: Repository<HnItemMetadata>,
   ) {}
 
+  async deleteLocalImage(itemId: number): Promise<void> {
+    const metadata = await this.metadataRepo.findOneBy({ id: itemId });
+    if (metadata?.local_image_path) {
+      const filepath = path.join(IMAGES_DIR, metadata.local_image_path);
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+        console.log(`Deleted old image: ${filepath}`);
+      }
+    }
+  }
+
   async fetchAndStoreOgMetadata(
     itemId: number,
     url: string,
