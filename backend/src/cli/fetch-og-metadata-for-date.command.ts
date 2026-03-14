@@ -2,6 +2,7 @@ import { Command, CommandRunner, Option } from 'nest-commander';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { OgMetadataService } from './og-metadata.service';
 
 @Command({
@@ -14,6 +15,8 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
   constructor(
     @InjectRepository(HnItem)
     private readonly hnItemRepo: Repository<HnItem>,
+    @InjectRepository(HnItemMetadata)
+    private readonly metadataRepo: Repository<HnItemMetadata>,
     private readonly ogMetadataService: OgMetadataService,
   ) {
     super();
@@ -33,9 +36,8 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
     const to = new Date(from);
     to.setUTCDate(to.getUTCDate() + 1);
 
-    const qb = this.hnItemRepo
+    const allItems = await this.hnItemRepo
       .createQueryBuilder('item')
-      .leftJoin('hn_items_metadata', 'meta', 'meta.id = item.id')
       .where('item.type = :type', { type: 'story' })
       .andWhere('item.deleted = false')
       .andWhere('item.dead = false')
@@ -43,16 +45,30 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
       .andWhere('item.time < :to', { to })
       .andWhere('item.url IS NOT NULL')
       .orderBy('item.score', 'DESC', 'NULLS LAST')
-      .limit(150);
+      .limit(150)
+      .getMany();
 
-    if (!force) {
-      qb.andWhere('meta.id IS NULL');
+    let items: HnItem[];
+    if (force) {
+      items = allItems;
+    } else {
+      const itemIds = allItems.map((i) => i.id);
+      const existingIds = new Set(
+        itemIds.length > 0
+          ? (
+              await this.metadataRepo
+                .createQueryBuilder('meta')
+                .select('meta.id')
+                .where('meta.id IN (:...ids)', { ids: itemIds })
+                .getMany()
+            ).map((m) => m.id)
+          : [],
+      );
+      items = allItems.filter((i) => !existingIds.has(i.id));
     }
 
-    const items = await qb.getMany();
-
     console.log(
-      `Found ${items.length} stories ${force ? '(force mode)' : 'without metadata'} for ${dateStr}`,
+      `Found ${allItems.length} top stories for ${dateStr} (processing ${items.length}${force ? ', force mode' : `, skipping ${allItems.length - items.length} with existing metadata`})`,
     );
 
     for (let i = 0; i < items.length; i++) {
