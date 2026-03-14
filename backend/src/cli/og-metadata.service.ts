@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
+import sharp from 'sharp';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 
 const IMAGES_DIR = '/app/images';
@@ -91,40 +92,27 @@ export class OgMetadataService {
     try {
       const response = await axios.get(imageUrl, {
         timeout: 15_000,
-        responseType: 'stream',
+        responseType: 'arraybuffer',
+        maxContentLength: 10 * 1024 * 1024,
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; HNAggregator/1.0)',
         },
       });
 
-      const contentType: string = response.headers['content-type'] || '';
-      const ext = this.extFromContentType(contentType);
-
       fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
-      const filename = `${itemId}${ext}`;
+      const filename = `${itemId}.webp`;
       const filepath = path.join(IMAGES_DIR, filename);
 
-      const writer = fs.createWriteStream(filepath);
-      response.data.pipe(writer);
-
-      await new Promise<void>((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-      });
+      await sharp(Buffer.from(response.data))
+        .resize(160, 120, { fit: 'cover' })
+        .webp({ quality: 80 })
+        .toFile(filepath);
 
       return filename;
     } catch (err) {
       console.error(`Failed to download image: ${err.message ?? err}`);
       return null;
     }
-  }
-
-  private extFromContentType(contentType: string): string {
-    if (contentType.includes('png')) return '.png';
-    if (contentType.includes('gif')) return '.gif';
-    if (contentType.includes('webp')) return '.webp';
-    if (contentType.includes('svg')) return '.svg';
-    return '.jpg';
   }
 }
