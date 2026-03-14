@@ -106,10 +106,7 @@ export class DateBar implements OnInit {
   readonly weekOffset = signal(0); // 0 = current week, -1 = one week back, etc.
 
   private readonly todayIso = (): string => {
-    const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-      .toISOString()
-      .slice(0, 10);
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   };
 
   private readonly dateFromUrl = (url: string): string => {
@@ -140,11 +137,14 @@ export class DateBar implements OnInit {
   readonly dateLinks = computed<DateLink[]>(() => {
     const links: DateLink[] = [];
     const offset = this.weekOffset();
-    const now = new Date();
+    const todayStr = this.todayIso();
+
+    // Use noon UTC as anchor to avoid DST-related date drift when adding days
+    const anchor = new Date(`${todayStr}T12:00:00Z`);
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offset * 7 - i));
-      const iso = d.toISOString().slice(0, 10);
+      const d = new Date(anchor.getTime() + (offset * 7 - i) * 86_400_000);
+      const iso = d.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
       let label: string;
       if (offset === 0 && i === 0) {
@@ -156,7 +156,7 @@ export class DateBar implements OnInit {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
-          timeZone: 'UTC',
+          timeZone: 'America/New_York',
         });
       }
 

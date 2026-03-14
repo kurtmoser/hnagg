@@ -49,10 +49,7 @@ export class Home implements OnInit {
   }
 
   private todayIso(): string {
-    const now = new Date();
-    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-      .toISOString()
-      .slice(0, 10);
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   }
 
   loadPage(page: number): void {

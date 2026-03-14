@@ -8,6 +8,7 @@ import {
   Repository,
 } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
+import { etMidnightAsUtc } from '../common/timezone';
 import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { PaginatedResponseDto } from './dto/paginated-response.dto';
@@ -37,13 +38,13 @@ export class StoriesService {
 
     if (from && to) {
       where.time = And(
-        MoreThanOrEqual(new Date(`${from}T00:00:00Z`)),
-        LessThan(new Date(`${to}T00:00:00Z`)),
+        MoreThanOrEqual(etMidnightAsUtc(from)),
+        LessThan(etMidnightAsUtc(to)),
       );
     } else if (from) {
-      where.time = MoreThanOrEqual(new Date(`${from}T00:00:00Z`));
+      where.time = MoreThanOrEqual(etMidnightAsUtc(from));
     } else if (to) {
-      where.time = LessThan(new Date(`${to}T00:00:00Z`));
+      where.time = LessThan(etMidnightAsUtc(to));
     }
 
     const [data, totalItems] = await this.hnItemRepo.findAndCount({

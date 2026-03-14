@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { OgMetadataService } from './og-metadata.service';
+import { etDateToUtcRange } from '../common/timezone';
 
 @Command({
   name: 'fetch-og-metadata-for-date',
@@ -32,9 +33,7 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
       return;
     }
 
-    const from = new Date(`${dateStr}T00:00:00Z`);
-    const to = new Date(from);
-    to.setUTCDate(to.getUTCDate() + 1);
+    const { from, to } = etDateToUtcRange(dateStr);
 
     const allItems = await this.hnItemRepo
       .createQueryBuilder('item')
