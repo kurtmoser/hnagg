@@ -45,6 +45,7 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
       .andWhere('item.time < :to', { to })
       .andWhere('item.url IS NOT NULL')
       .orderBy('item.score', 'DESC', 'NULLS LAST')
+      .addOrderBy('item.id', 'ASC')
       .limit(150)
       .getMany();
 

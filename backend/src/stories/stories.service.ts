@@ -49,7 +49,7 @@ export class StoriesService {
     const [data, totalItems] = await this.hnItemRepo.findAndCount({
       where,
       relations: ['metadata'],
-      order: { score: { direction: 'DESC', nulls: 'LAST' } },
+      order: { score: { direction: 'DESC', nulls: 'LAST' }, id: 'ASC' },
       skip: (page - 1) * limit,
       take: limit,
     });
