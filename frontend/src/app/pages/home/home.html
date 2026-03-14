@@ -20,24 +20,20 @@
       <span class="rank">{{ rank(i) }}.</span>
       <div class="story-content">
         @if (story.metadata?.local_image_path) {
-          <a [href]="story.url" target="_blank" rel="noopener">
+          <a [href]="story.url || 'https://news.ycombinator.com/item?id=' + story.id" target="_blank" rel="noopener">
             <img class="story-image" [src]="'/api/images/' + story.metadata!.local_image_path" [alt]="story.title" loading="lazy" />
           </a>
         } @else {
-          <a [href]="story.url" target="_blank" rel="noopener">
+          <a [href]="story.url || 'https://news.ycombinator.com/item?id=' + story.id" target="_blank" rel="noopener">
             <div class="story-image-placeholder"></div>
           </a>
         }
         <div class="story-text">
         <div class="story-title-row">
-          @if (story.url) {
-          <a class="story-title" [href]="story.url" target="_blank" rel="noopener">
+          <a class="story-title" [href]="story.url || 'https://news.ycombinator.com/item?id=' + story.id" target="_blank" rel="noopener">
             {{ story.title }}
           </a>
-          <span class="story-domain">({{ storyDomain(story.url) }})</span>
-          } @else {
-          <span class="story-title no-link">{{ story.title }}</span>
-          }
+          <span class="story-domain">({{ storyDomain(story.url || 'https://news.ycombinator.com/item?id=' + story.id) }})</span>
         </div>
         <div class="story-meta">
           <span class="score">{{ story.score ?? 0 }} points</span>
