@@ -19,7 +19,7 @@ services:
     ports:
       - "50142:3000"
     volumes:
-      - ./images:/app/images
+      - ./images:/app/images:Z
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT}
