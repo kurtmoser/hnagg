@@ -123,6 +123,7 @@ export class Home implements OnInit {
         this.stories.set(response.data);
         this.meta.set(response.meta);
         this.loading.set(false);
+        this.setJsonLd(response.data);
       },
       error: (err) => {
         this.error.set('Failed to load stories. Please try again.');
@@ -183,6 +184,52 @@ export class Home implements OnInit {
     } catch {
       return '';
     }
+  }
+
+  private setJsonLd(stories: Story[]): void {
+    const date = this.activeDate();
+    const url = date ? `https://hnagg.com/date/${date}` : 'https://hnagg.com/';
+
+    const jsonLd: object[] = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Hacker News Aggregator',
+        url: 'https://hnagg.com/',
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: date ? `Top Hacker News Stories – ${this.formatDate(date)}` : 'Top Hacker News Stories',
+        url,
+        itemListElement: stories.map((story, i) => ({
+          '@type': 'ListItem',
+          position: this.rank(i),
+          name: story.title,
+          url: story.url || `https://news.ycombinator.com/item?id=${story.id}`,
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://hnagg.com/' },
+          ...(date
+            ? [{ '@type': 'ListItem', position: 2, name: this.formatDate(date), item: url }]
+            : []),
+        ],
+      },
+    ];
+
+    const head = this.document.head;
+    let script = head.querySelector('script#json-ld') as HTMLScriptElement | null;
+    if (!script) {
+      script = this.document.createElement('script');
+      script.id = 'json-ld';
+      script.type = 'application/ld+json';
+      head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonLd);
   }
 
   private setCanonical(url: string): void {
