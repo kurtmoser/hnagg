@@ -1,4 +1,6 @@
 <section class="stories-container">
+  <h1 class="sr-only">{{ heading() }}</h1>
+
   @if (loading() && stories().length === 0) {
   <div class="loading">
     <div class="spinner"></div>

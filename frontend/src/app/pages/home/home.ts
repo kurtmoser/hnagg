@@ -1,4 +1,6 @@
+import { DOCUMENT } from '@angular/common';
 import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
@@ -19,6 +21,8 @@ export class Home implements OnInit {
   private readonly storiesService = inject(StoriesService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly titleService = inject(Title);
+  private readonly document = inject(DOCUMENT);
 
   readonly stories = signal<Story[]>([]);
   readonly meta = signal<PaginationMeta | null>(null);
@@ -83,6 +87,8 @@ export class Home implements OnInit {
 
       this.activeDate.set(date);
       this.activePage.set(page);
+      this.titleService.setTitle(param ? this.heading() : 'Top Hacker News Stories');
+      this.setCanonical(param ? `https://hnagg.com/date/${date}` : 'https://hnagg.com/');
       this.loadPage(page);
       window.scrollTo(0, 0);
     });
@@ -163,6 +169,30 @@ export class Home implements OnInit {
     } catch {
       return '';
     }
+  }
+
+  private setCanonical(url: string): void {
+    const head = this.document.head;
+    let link = head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!link) {
+      link = this.document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      head.appendChild(link);
+    }
+    link.setAttribute('href', url);
+  }
+
+  heading(): string {
+    const date = this.activeDate();
+    if (!date) return 'Top Hacker News Stories';
+    const d = new Date(`${date}T12:00:00Z`);
+    const formatted = d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    return `Top Hacker News Stories – ${formatted}`;
   }
 
   rank(index: number): number {
