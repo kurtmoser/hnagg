@@ -1,20 +1,87 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
+import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
+import { etDateToUtcRange } from '../common/timezone';
 
 const IMAGES_DIR = '/app/images';
 
 @Injectable()
 export class OgMetadataService {
+  private readonly logger = new Logger(OgMetadataService.name);
+
   constructor(
+    @InjectRepository(HnItem)
+    private readonly hnItemRepo: Repository<HnItem>,
     @InjectRepository(HnItemMetadata)
     private readonly metadataRepo: Repository<HnItemMetadata>,
   ) {}
+
+  async fetchOgMetadataForDate(
+    dateStr: string,
+    force = false,
+  ): Promise<void> {
+    const { from, to } = etDateToUtcRange(dateStr);
+
+    const allItems = await this.hnItemRepo
+      .createQueryBuilder('item')
+      .where('item.type = :type', { type: 'story' })
+      .andWhere('item.deleted = false')
+      .andWhere('item.dead = false')
+      .andWhere('item.time >= :from', { from })
+      .andWhere('item.time < :to', { to })
+      .andWhere('item.url IS NOT NULL')
+      .orderBy('item.score', 'DESC', 'NULLS LAST')
+      .addOrderBy('item.id', 'ASC')
+      .limit(150)
+      .getMany();
+
+    let items: HnItem[];
+    if (force) {
+      items = allItems;
+    } else {
+      const itemIds = allItems.map((i) => i.id);
+      const existingIds = new Set(
+        itemIds.length > 0
+          ? (
+              await this.metadataRepo
+                .createQueryBuilder('meta')
+                .select('meta.id')
+                .where('meta.id IN (:...ids)', { ids: itemIds })
+                .getMany()
+            ).map((m) => m.id)
+          : [],
+      );
+      items = allItems.filter((i) => !existingIds.has(i.id));
+    }
+
+    this.logger.log(
+      `Found ${allItems.length} top stories for ${dateStr} (processing ${items.length}${force ? ', force mode' : `, skipping ${allItems.length - items.length} with existing metadata`})`,
+    );
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      this.logger.log(
+        `Processing ${i + 1}/${items.length}: item ${item.id} — ${item.url}`,
+      );
+
+      try {
+        if (force) {
+          await this.deleteLocalImage(item.id);
+        }
+        await this.fetchAndStoreOgMetadata(item.id, item.url!);
+      } catch (err) {
+        this.logger.error(`Failed for item ${item.id}: ${err.message ?? err}`);
+      }
+    }
+
+    this.logger.log(`Done fetching OG metadata for ${dateStr}.`);
+  }
 
   async deleteLocalImage(itemId: number): Promise<void> {
     const metadata = await this.metadataRepo.findOneBy({ id: itemId });

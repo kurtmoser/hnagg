@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StoriesModule } from './stories/stories.module';
 import { ImagesModule } from './images/images.module';
 import { SitemapModule } from './sitemap/sitemap.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SitemapModule } from './sitemap/sitemap.module';
     StoriesModule,
     ImagesModule,
     SitemapModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
