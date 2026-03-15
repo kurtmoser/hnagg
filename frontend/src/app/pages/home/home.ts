@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
-import { Title } from '@angular/platform-browser';
+import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
 import { PaginationMeta, Story } from '../../models/story.model';
@@ -22,6 +22,7 @@ export class Home implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly titleService = inject(Title);
+  private readonly metaService = inject(Meta);
   private readonly document = inject(DOCUMENT);
 
   readonly stories = signal<Story[]>([]);
@@ -87,8 +88,21 @@ export class Home implements OnInit {
 
       this.activeDate.set(date);
       this.activePage.set(page);
-      this.titleService.setTitle(param ? this.heading() : 'Top Hacker News Stories');
-      this.setCanonical(param ? `https://hnagg.com/date/${date}` : 'https://hnagg.com/');
+
+      const title = param ? this.heading() : 'Top Hacker News Stories';
+      const description = param
+        ? `Top ranked Hacker News stories for ${this.formatDate(date)}.`
+        : 'Daily rankings of the top Hacker News stories, organized by date.';
+      const url = param ? `https://hnagg.com/date/${date}` : 'https://hnagg.com/';
+
+      this.titleService.setTitle(title);
+      this.metaService.updateTag({ name: 'description', content: description });
+      this.metaService.updateTag({ property: 'og:title', content: title });
+      this.metaService.updateTag({ property: 'og:description', content: description });
+      this.metaService.updateTag({ property: 'og:url', content: url });
+      this.metaService.updateTag({ name: 'twitter:title', content: title });
+      this.metaService.updateTag({ name: 'twitter:description', content: description });
+      this.setCanonical(url);
       this.loadPage(page);
       window.scrollTo(0, 0);
     });
@@ -185,14 +199,16 @@ export class Home implements OnInit {
   heading(): string {
     const date = this.activeDate();
     if (!date) return 'Top Hacker News Stories';
-    const d = new Date(`${date}T12:00:00Z`);
-    const formatted = d.toLocaleDateString('en-US', {
+    return `Top Hacker News Stories – ${this.formatDate(date)}`;
+  }
+
+  private formatDate(date: string): string {
+    return new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       timeZone: 'UTC',
     });
-    return `Top Hacker News Stories – ${formatted}`;
   }
 
   rank(index: number): number {
