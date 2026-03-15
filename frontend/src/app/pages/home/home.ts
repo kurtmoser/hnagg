@@ -1,5 +1,5 @@
-import { DOCUMENT } from '@angular/common';
-import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { Component, HostListener, inject, OnInit, PendingTasks, PLATFORM_ID, signal } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { StoriesService } from '../../services/stories.service';
@@ -24,6 +24,8 @@ export class Home implements OnInit {
   private readonly titleService = inject(Title);
   private readonly metaService = inject(Meta);
   private readonly document = inject(DOCUMENT);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly pendingTasks = inject(PendingTasks);
 
   readonly stories = signal<Story[]>([]);
   readonly meta = signal<PaginationMeta | null>(null);
@@ -104,7 +106,9 @@ export class Home implements OnInit {
       this.metaService.updateTag({ name: 'twitter:description', content: description });
       this.setCanonical(url);
       this.loadPage(page);
-      window.scrollTo(0, 0);
+      if (isPlatformBrowser(this.platformId)) {
+        window.scrollTo(0, 0);
+      }
     });
   }
 
@@ -118,6 +122,7 @@ export class Home implements OnInit {
     const date = this.activeDate();
     const { from, to } = date ? this.dateToRange(date) : {};
 
+    const taskDone = this.pendingTasks.add();
     this.storiesService.getStories(page, 30, from, to).subscribe({
       next: (response) => {
         this.stories.set(response.data);
@@ -130,6 +135,7 @@ export class Home implements OnInit {
         this.loading.set(false);
         console.error('Error loading stories:', err);
       },
+      complete: () => taskDone(),
     });
   }
 

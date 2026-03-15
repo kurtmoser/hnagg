@@ -36,7 +36,9 @@ services:
     build:
       context: ./frontend
     ports:
-      - "50141:80"
+      - "50141:4000"
+    environment:
+      NG_ALLOWED_HOSTS: ".hnagg.com,localhost"
     depends_on:
       - backend
     restart: unless-stopped
@@ -49,7 +51,7 @@ services:
       - "traefik.http.routers.hnagg.entrypoints=websecure"
       - "traefik.http.routers.hnagg.tls=true"
       - "traefik.http.routers.hnagg.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hnagg.loadbalancer.server.port=80"
+      - "traefik.http.services.hnagg.loadbalancer.server.port=4000"
       # www → non-www redirect
       - "traefik.http.routers.hnagg-www.rule=Host(`www.hnagg.com`)"
       - "traefik.http.routers.hnagg-www.entrypoints=websecure"
