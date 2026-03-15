@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
 
@@ -12,6 +12,7 @@ interface DateLink {
 
 @Component({
   selector: 'app-date-bar',
+  imports: [RouterLink],
   template: `
     <nav class="date-bar">
       <div class="date-bar-content">
@@ -20,11 +21,11 @@ interface DateLink {
         }
 
         @for (link of dateLinks(); track link.date) {
-          <button
+          <a
             class="date-link"
             [class.active]="link.date === selectedDate()"
-            (click)="selectDate(link.date)"
-          >{{ link.label }}</button>
+            [routerLink]="['/date', link.date]"
+          >{{ link.label }}</a>
         }
 
         @if (!atMinDate()) {
@@ -88,6 +89,7 @@ interface DateLink {
       white-space: nowrap;
       border-radius: 9999px;
       transition: all 0.15s ease;
+      text-decoration: none;
 
       &:hover {
         background: #ffedd5;
@@ -187,10 +189,6 @@ export class DateBar implements OnInit {
     if (this.weekOffset() >= 0) return;
     this.weekOffset.update((o) => o + 1);
     this.selectTopOfWindow();
-  }
-
-  selectDate(date: string): void {
-    this.router.navigate(['/date', date]);
   }
 
   private selectTopOfWindow(): void {
