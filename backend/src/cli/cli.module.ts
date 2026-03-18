@@ -7,10 +7,12 @@ import { HelloCommand } from './hello.command';
 import { ImportDataCommand } from './import-data.command';
 import { OgMetadataService } from './og-metadata.service';
 import { StreamUpdatesCommand } from './stream-updates.command';
+import { AuditOgAvailabilityCommand } from './audit-og-availability.command';
 
 @Module({
   imports: [AppModule, HnModule],
   providers: [
+    AuditOgAvailabilityCommand,
     HelloCommand,
     ImportDataCommand,
     StreamUpdatesCommand,
