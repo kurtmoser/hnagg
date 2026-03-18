@@ -52,7 +52,7 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       console.log(
-        `Checking ${i + 1}/${items.length}: item ${item.id} — ${item.url}`,
+        `Checking with chrome UA ${i + 1}/${items.length}: item ${item.id} — ${item.url}`,
       );
 
       try {
@@ -61,8 +61,9 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
           maxRedirects: 5,
           responseType: 'text',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; HNAggregator/1.0)',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             Accept: 'text/html',
+            'Accept-Language': 'en-US,en;q=0.9',
           },
         });
 
@@ -107,4 +108,3 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
     }
   }
 }
-
