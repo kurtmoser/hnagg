@@ -12,6 +12,15 @@ const indexHtml = readFileSync(join(serverDistFolder, 'index.server.html'), 'utf
 
 const app = express();
 
+// Serve favicon with short cache to bust any stale cached versions
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile('favicon.ico', {
+    root: browserDistFolder,
+    maxAge: '1d',
+    headers: { 'Cache-Control': 'public, max-age=86400' }
+  });
+});
+
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
