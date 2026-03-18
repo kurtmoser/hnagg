@@ -52,7 +52,7 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       console.log(
-        `Checking with chrome UA ${i + 1}/${items.length}: item ${item.id} — ${item.url}`,
+        `Checking: ${i + 1}/${items.length}: item ${item.id} — ${item.url}`,
       );
 
       try {
@@ -67,10 +67,7 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
           },
         });
 
-        const ogImage = this.ogMetadataService.extractMetaTag(
-          html,
-          'og:image',
-        );
+        const ogImage = this.ogMetadataService.extractImageUrl(html);
         if (ogImage) {
           withImage++;
         } else {

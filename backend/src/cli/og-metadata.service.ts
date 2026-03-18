@@ -109,10 +109,10 @@ export class OgMetadataService {
       },
     });
 
-    const ogImage = this.extractMetaTag(html, 'og:image');
+    const ogImage = this.extractImageUrl(html);
     const ogDescription = this.extractMetaTag(html, 'og:description');
 
-    console.log(`og:image = ${ogImage ?? '(none)'}`);
+    console.log(`image = ${ogImage ?? '(none)'}`);
     console.log(`og:description = ${ogDescription ?? '(none)'}`);
 
     let localImagePath: string | null = null;
@@ -147,6 +147,51 @@ export class OgMetadataService {
 
     const regexReversed = new RegExp(
       `<meta\\s+[^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?property\\s*=\\s*["']${escapedProp}["'][^>]*?\\/?>`,
+      'i',
+    );
+    const matchReversed = html.match(regexReversed);
+    return matchReversed ? matchReversed[1] : null;
+  }
+
+  extractImageUrl(html: string): string | null {
+    return (
+      this.extractMetaTag(html, 'og:image') ??
+      this.extractMetaName(html, 'twitter:image') ??
+      this.extractMetaName(html, 'image') ??
+      this.extractLinkHref(html, 'image_src')
+    );
+  }
+
+  extractMetaName(html: string, name: string): string | null {
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const regex = new RegExp(
+      `<meta\\s+[^>]*?name\\s*=\\s*["']${escapedName}["'][^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?\\/?>`,
+      'i',
+    );
+    const match = html.match(regex);
+    if (match) return match[1];
+
+    const regexReversed = new RegExp(
+      `<meta\\s+[^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?name\\s*=\\s*["']${escapedName}["'][^>]*?\\/?>`,
+      'i',
+    );
+    const matchReversed = html.match(regexReversed);
+    return matchReversed ? matchReversed[1] : null;
+  }
+
+  extractLinkHref(html: string, rel: string): string | null {
+    const escapedRel = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const regex = new RegExp(
+      `<link\\s+[^>]*?rel\\s*=\\s*["']${escapedRel}["'][^>]*?href\\s*=\\s*["']([^"']+)["'][^>]*?\\/?>`,
+      'i',
+    );
+    const match = html.match(regex);
+    if (match) return match[1];
+
+    const regexReversed = new RegExp(
+      `<link\\s+[^>]*?href\\s*=\\s*["']([^"']+)["'][^>]*?rel\\s*=\\s*["']${escapedRel}["'][^>]*?\\/?>`,
       'i',
     );
     const matchReversed = html.match(regexReversed);
