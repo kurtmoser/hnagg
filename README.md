@@ -4,8 +4,7 @@ Daily rankings of the top Hacker News stories, organized by date. Live at [hnagg
 
 ## Architecture
 
-- **Frontend** -- Angular 21 with server-side rendering (Express + `renderApplication`). Serves static assets, proxies API and sitemap requests to the backend, and renders full HTML for crawlers.
-- **Backend** -- NestJS REST API. Streams live updates from the HN Firebase API, stores stories and score/comment snapshots in PostgreSQL, serves paginated stories by date, and generates sitemaps.
+- **Backend** -- NestJS application that serves HTML pages (Handlebars templates) and a REST API. Streams live updates from the HN Firebase API, stores stories and score/comment snapshots in PostgreSQL, serves paginated stories by date, and generates sitemaps.
 - **Database** -- PostgreSQL 18.
 
 ## Prerequisites
@@ -21,7 +20,6 @@ docker compose up --build -d
 
 | Service  | URL                          |
 |----------|------------------------------|
-| Frontend | http://localhost:50141       |
 | Backend  | http://localhost:50142       |
 | Postgres | localhost:50143              |
 
@@ -30,7 +28,7 @@ docker compose up --build -d
 ```sh
 git pull
 docker compose build --no-cache
-docker compose up -d --force-recreate backend frontend
+docker compose up -d --force-recreate backend
 ```
 
 ## CLI commands

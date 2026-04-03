@@ -4,11 +4,10 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 
 ## Architecture
 
-| Service    | Port  | Description                          |
-|------------|-------|--------------------------------------|
-| `frontend` | 50141 | Angular frontend                     |
-| `backend`  | 50142 | NestJS REST API (internally on 3000) |
-| `postgres` | 50143 | PostgreSQL 18 database               |
+| Service    | Port  | Description                                    |
+|------------|-------|------------------------------------------------|
+| `backend`  | 50142 | NestJS app — HTML pages + REST API (port 3000) |
+| `postgres` | 50143 | PostgreSQL 18 database                         |
 
 ### Database Schema
 
@@ -17,17 +16,25 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 - **`descendants_snapshots`** — Records point-in-time comment count (descendants) values for stories, same logic as score snapshots.
 - **`hn_items_metadata`** — Stores OpenGraph metadata (og:image, og:description) and local image paths for stories.
 
-### API Endpoints
+### Routes
 
-All endpoints are prefixed with `/api`.
+**Pages (HTML)**
 
-| Method | Path                               | Description                              |
-|--------|-------------------------------------|------------------------------------------|
-| GET    | `/api/stories`                      | Paginated stories, sorted by score DESC  |
-| GET    | `/api/stories?timeframe=1d`         | Filter by timeframe: `1d`, `2d`, `3d`, `5d`, `1w`, `1m` |
-| GET    | `/api/stories/:id/score-history`    | Score snapshots over time for a story    |
-| GET    | `/api/stories/:id/descendants-history` | Comment count snapshots over time     |
-| GET    | `/api/images/:filename`                | Serves locally stored OG images       |
+| Method | Path                  | Description                              |
+|--------|-----------------------|------------------------------------------|
+| GET    | `/`                   | Redirects to `/date/{today}`             |
+| GET    | `/date/:date`         | Stories for a date (page 1)              |
+| GET    | `/date/:date/:page`   | Stories for a date (specific page)       |
+| GET    | `/sitemap.xml`        | XML sitemap                              |
+
+**API (JSON)**
+
+| Method | Path                                   | Description                              |
+|--------|----------------------------------------|------------------------------------------|
+| GET    | `/api/stories`                         | Paginated stories, sorted by score DESC  |
+| GET    | `/api/stories/:id/score-history`       | Score snapshots over time for a story    |
+| GET    | `/api/stories/:id/descendants-history` | Comment count snapshots over time        |
+| GET    | `/api/images/:filename`                | Serves locally stored OG images          |
 
 ### CLI Commands
 
