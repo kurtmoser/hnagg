@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StoriesModule } from './stories/stories.module';
 import { ImagesModule } from './images/images.module';
 import { SitemapModule } from './sitemap/sitemap.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { PagesModule } from './pages/pages.module';
 
 @Module({
   imports: [
@@ -25,8 +24,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     ImagesModule,
     SitemapModule,
     SchedulerModule,
+    PagesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

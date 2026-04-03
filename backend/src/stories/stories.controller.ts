@@ -13,7 +13,7 @@ import { PaginatedResponseDto } from './dto/paginated-response.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { StoriesService } from './stories.service';
 
-@Controller('stories')
+@Controller('api/stories')
 export class StoriesController {
   constructor(private readonly storiesService: StoriesService) { }
 

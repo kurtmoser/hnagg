@@ -11,5 +11,6 @@ import { StoriesService } from './stories.service';
   imports: [TypeOrmModule.forFeature([HnItem, HnItemMetadata, ScoreSnapshot, DescendantsSnapshot])],
   controllers: [StoriesController],
   providers: [StoriesService],
+  exports: [StoriesService],
 })
 export class StoriesModule { }

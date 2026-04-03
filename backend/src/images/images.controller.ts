@@ -5,7 +5,7 @@ import * as fs from 'fs';
 
 const IMAGES_DIR = '/app/images';
 
-@Controller('images')
+@Controller('api/images')
 export class ImagesController {
   @Get(':filename')
   getImage(@Param('filename') filename: string, @Res() res: Response) {
