@@ -75,11 +75,18 @@
       display: flex;
       align-items: center;
       gap: 0.25rem;
+    }
+    .date-bar-links {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      flex: 1;
+      min-width: 0;
     }
-    .date-bar-content::-webkit-scrollbar {
+    .date-bar-links::-webkit-scrollbar {
       display: none;
     }
     .nav-btn {
@@ -118,6 +125,64 @@
       background: #ffedd5;
     }
     .date-link.active {
+      background: #f97316;
+      color: white;
+    }
+    .period-toggle-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .period-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      padding: 0.375rem;
+      color: #92400e;
+      cursor: pointer;
+      border-radius: 9999px;
+      transition: all 0.15s ease;
+    }
+    .period-toggle:hover {
+      background: #ffedd5;
+    }
+    .period-toggle svg {
+      width: 18px;
+      height: 18px;
+    }
+    .period-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 100%;
+      margin-top: 0.25rem;
+      background: white;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 100;
+      min-width: 120px;
+      overflow: hidden;
+    }
+    .period-dropdown.open {
+      display: block;
+    }
+    .period-option {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #92400e;
+      text-decoration: none;
+      transition: background 0.1s ease;
+      text-align: left;
+    }
+    .period-option:hover {
+      background: #ffedd5;
+    }
+    .period-option.active {
       background: #f97316;
       color: white;
     }
@@ -284,17 +349,30 @@
 
 <nav class="date-bar">
   <div class="date-bar-content">
-    {{#if dateBar.showNewerWeekBtn}}
-      <a class="nav-btn" href="/date/{{dateBar.newerWeekDate}}" title="More recent week">&#8249;</a>
-    {{/if}}
+    <div class="date-bar-links">
+      {{#if dateBar.showNewerBtn}}
+        <a class="nav-btn" href="{{dateBar.newerHref}}" title="More recent">&#8249;</a>
+      {{/if}}
 
-    {{#each dateBar.dateLinks}}
-      <a class="date-link{{#if this.active}} active{{/if}}" href="/date/{{this.date}}">{{this.label}}</a>
-    {{/each}}
+      {{#each dateBar.dateLinks}}
+        <a class="date-link{{#if this.active}} active{{/if}}" href="{{this.href}}">{{this.label}}</a>
+      {{/each}}
 
-    {{#if dateBar.showOlderWeekBtn}}
-      <a class="nav-btn" href="/date/{{dateBar.olderWeekDate}}" title="Previous week">&#8250;</a>
-    {{/if}}
+      {{#if dateBar.showOlderBtn}}
+        <a class="nav-btn" href="{{dateBar.olderHref}}" title="Older">&#8250;</a>
+      {{/if}}
+    </div>
+
+    <div class="period-toggle-wrap">
+      <button class="period-toggle" id="periodToggle" aria-label="Change grouping">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+      </button>
+      <div class="period-dropdown" id="periodDropdown">
+        <a class="period-option{{#if periodIsDay}} active{{/if}}" href="{{cogLinks.day}}">Day</a>
+        <a class="period-option{{#if periodIsWeek}} active{{/if}}" href="{{cogLinks.week}}">Week</a>
+        <a class="period-option{{#if periodIsMonth}} active{{/if}}" href="{{cogLinks.month}}">Month</a>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -358,6 +436,7 @@
   var MIN_DATE = '{{minDate}}';
   var activeDate = '{{date}}';
   var todayIso = '{{today}}';
+  var period = '{{period}}';
 
   function addDays(date, days) {
     var d = new Date(date + 'T00:00:00Z');
@@ -365,6 +444,27 @@
     return d.toISOString().slice(0, 10);
   }
 
+  function addMonths(ym, n) {
+    var y = parseInt(ym.slice(0, 4), 10);
+    var m = parseInt(ym.slice(5, 7), 10) - 1 + n;
+    var d = new Date(Date.UTC(y, m, 1, 12));
+    return d.toISOString().slice(0, 7);
+  }
+
+  // Period toggle dropdown
+  var toggle = document.getElementById('periodToggle');
+  var dropdown = document.getElementById('periodDropdown');
+  if (toggle && dropdown) {
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdown.classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+      dropdown.classList.remove('open');
+    });
+  }
+
+  // Swipe navigation
   document.addEventListener('touchstart', function(e) {
     startX = e.changedTouches[0].clientX;
     startY = e.changedTouches[0].clientY;
@@ -374,12 +474,30 @@
     var deltaX = e.changedTouches[0].clientX - startX;
     var deltaY = e.changedTouches[0].clientY - startY;
     if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
-      if (deltaX > 0) {
-        var next = addDays(activeDate, 1);
-        if (next <= todayIso) window.location.href = '/date/' + next;
-      } else {
-        var prev = addDays(activeDate, -1);
-        if (prev >= MIN_DATE) window.location.href = '/date/' + prev;
+      if (period === 'day') {
+        if (deltaX > 0) {
+          var next = addDays(activeDate, 1);
+          if (next <= todayIso) window.location.href = '/date/' + next;
+        } else {
+          var prev = addDays(activeDate, -1);
+          if (prev >= MIN_DATE) window.location.href = '/date/' + prev;
+        }
+      } else if (period === 'week') {
+        if (deltaX > 0) {
+          var nextW = addDays(activeDate, 7);
+          if (nextW <= todayIso) window.location.href = '/week/' + nextW;
+        } else {
+          var prevW = addDays(activeDate, -7);
+          if (prevW >= MIN_DATE) window.location.href = '/week/' + prevW;
+        }
+      } else if (period === 'month') {
+        if (deltaX > 0) {
+          var nextM = addMonths(activeDate, 1);
+          if (nextM <= todayIso.slice(0, 7)) window.location.href = '/month/' + nextM;
+        } else {
+          var prevM = addMonths(activeDate, -1);
+          if (prevM >= MIN_DATE.slice(0, 7)) window.location.href = '/month/' + prevM;
+        }
       }
     }
   });

@@ -2,6 +2,8 @@ const MIN_DATE = '2026-03-01';
 const DOMAIN = 'https://hnagg.com';
 const MAX_PAGES = 5;
 
+export type Period = 'day' | 'week' | 'month';
+
 export { MIN_DATE, DOMAIN, MAX_PAGES };
 
 export function todayIso(): string {
@@ -50,18 +52,90 @@ export function extractDomain(url: string | null): string {
   }
 }
 
+/** Return the Sunday (week start) for a given ISO date. */
+export function getSundayStart(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  const day = d.getUTCDay(); // 0=Sun
+  d.setUTCDate(d.getUTCDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Return the YYYY-MM for a given ISO date. */
+export function getMonthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+/** Compute from/to ISO date strings for a period. */
+export function periodDateRange(
+  dateOrMonth: string,
+  period: Period,
+): { fromDate: string; toDate: string } {
+  if (period === 'week') {
+    const from = dateOrMonth; // should already be a Sunday
+    return { fromDate: from, toDate: addDays(from, 7) };
+  }
+  if (period === 'month') {
+    const fromDate = `${dateOrMonth}-01`;
+    const d = new Date(`${fromDate}T12:00:00Z`);
+    d.setUTCMonth(d.getUTCMonth() + 1);
+    const toDate = d.toISOString().slice(0, 10);
+    return { fromDate, toDate };
+  }
+  // day
+  return { fromDate: dateOrMonth, toDate: addDays(dateOrMonth, 1) };
+}
+
+/** Format heading for a period. */
+export function formatPeriodHeading(
+  dateOrMonth: string,
+  period: Period,
+): string {
+  if (period === 'week') {
+    const start = new Date(`${dateOrMonth}T12:00:00Z`);
+    const end = new Date(start.getTime() + 6 * 86_400_000);
+    const sameMonth =
+      start.getUTCMonth() === end.getUTCMonth() &&
+      start.getUTCFullYear() === end.getUTCFullYear();
+    if (sameMonth) {
+      const month = start.toLocaleDateString('en-US', {
+        month: 'short',
+        timeZone: 'UTC',
+      });
+      const year = start.getUTCFullYear();
+      return `${month} ${start.getUTCDate()}-${end.getUTCDate()}, ${year}`;
+    }
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+      });
+    const year = end.getUTCFullYear();
+    return `${fmt(start)} - ${fmt(end)}, ${year}`;
+  }
+  if (period === 'month') {
+    const d = new Date(`${dateOrMonth}-01T12:00:00Z`);
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    });
+  }
+  return formatDate(dateOrMonth);
+}
+
 export interface DateLink {
   label: string;
-  date: string;
+  href: string;
   active: boolean;
 }
 
 export interface DateBarData {
   dateLinks: DateLink[];
-  showNewerWeekBtn: boolean;
-  newerWeekDate: string | null;
-  showOlderWeekBtn: boolean;
-  olderWeekDate: string | null;
+  showNewerBtn: boolean;
+  newerHref: string | null;
+  showOlderBtn: boolean;
+  olderHref: string | null;
 }
 
 export function computeDateBarLinks(
@@ -96,38 +170,201 @@ export function computeDateBarLinks(
     }
 
     if (iso >= MIN_DATE) {
-      links.push({ label, date: iso, active: iso === selectedDate });
+      links.push({ label, href: `/date/${iso}`, active: iso === selectedDate });
     }
   }
 
-  const atMinDate = links.length > 0 && links[links.length - 1].date === MIN_DATE;
+  const lastDate = links.length > 0 ? links[links.length - 1].href.slice(6) : '';
+  const atMinDate = lastDate === MIN_DATE;
 
   // Newer week: navigate to top of next week window
-  let newerWeekDate: string | null = null;
+  let newerHref: string | null = null;
   if (weekOffset < 0) {
     const nextAnchor = new Date(
       anchor.getTime() + ((weekOffset + 1) * 7) * 86_400_000,
     );
     const nextIso = nextAnchor.toISOString().slice(0, 10);
-    newerWeekDate = nextIso <= today ? nextIso : today;
+    const dest = nextIso <= today ? nextIso : today;
+    newerHref = `/date/${dest}`;
   }
 
   // Older week: navigate to top of previous week window
-  let olderWeekDate: string | null = null;
+  let olderHref: string | null = null;
   if (!atMinDate) {
     const prevAnchor = new Date(
       anchor.getTime() + ((weekOffset - 1) * 7) * 86_400_000,
     );
-    olderWeekDate = prevAnchor.toISOString().slice(0, 10);
-    if (olderWeekDate < MIN_DATE) olderWeekDate = MIN_DATE;
+    let olderDate = prevAnchor.toISOString().slice(0, 10);
+    if (olderDate < MIN_DATE) olderDate = MIN_DATE;
+    olderHref = `/date/${olderDate}`;
   }
 
   return {
     dateLinks: links,
-    showNewerWeekBtn: weekOffset < 0,
-    newerWeekDate,
-    showOlderWeekBtn: !atMinDate,
-    olderWeekDate,
+    showNewerBtn: weekOffset < 0,
+    newerHref,
+    showOlderBtn: !atMinDate,
+    olderHref,
+  };
+}
+
+export function computeWeekBarLinks(
+  selectedSunday: string,
+  today: string,
+): DateBarData {
+  const COUNT = 5;
+  const todaySunday = getSundayStart(today);
+  const minSunday = getSundayStart(MIN_DATE);
+
+  // Determine group offset from todaySunday (analogous to day bar's weekOffset).
+  // Group 0 = the most recent COUNT weeks ending at todaySunday.
+  // Group -1 = the COUNT weeks before that, etc.
+  const selectedMs = new Date(`${selectedSunday}T12:00:00Z`).getTime();
+  const todaySundayMs = new Date(`${todaySunday}T12:00:00Z`).getTime();
+  const weeksBehind = Math.round((todaySundayMs - selectedMs) / (7 * 86_400_000));
+  const groupOffset = weeksBehind >= 0 ? -Math.floor(weeksBehind / COUNT) : 0;
+
+  const links: DateLink[] = [];
+  for (let i = 0; i < COUNT; i++) {
+    const sun = addDays(todaySunday, (groupOffset * COUNT - i) * 7);
+    if (sun < minSunday) continue;
+    if (sun > todaySunday) continue;
+
+    const sat = addDays(sun, 6);
+    const sunD = new Date(`${sun}T12:00:00Z`);
+    const satD = new Date(`${sat}T12:00:00Z`);
+
+    let label: string;
+    if (groupOffset === 0 && i === 0) {
+      label = 'This Week';
+    } else if (groupOffset === 0 && i === 1) {
+      label = 'Last Week';
+    } else if (sunD.getUTCMonth() === satD.getUTCMonth()) {
+      const month = sunD.toLocaleDateString('en-US', {
+        month: 'short',
+        timeZone: 'UTC',
+      });
+      label = `${month} ${sunD.getUTCDate()}-${satD.getUTCDate()}`;
+    } else {
+      const fmt = (d: Date) =>
+        d.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          timeZone: 'UTC',
+        });
+      label = `${fmt(sunD)}-${fmt(satD)}`;
+    }
+
+    links.push({
+      label,
+      href: `/week/${sun}`,
+      active: sun === selectedSunday,
+    });
+  }
+
+  const oldestShown = links.length > 0 ? links[links.length - 1].href.slice(6) : minSunday;
+  const atMinWeek = oldestShown <= minSunday;
+
+  // Newer group: jump COUNT weeks forward from the newest shown
+  let newerHref: string | null = null;
+  if (groupOffset < 0) {
+    const newestInNextGroup = addDays(todaySunday, ((groupOffset + 1) * COUNT) * 7);
+    const dest = newestInNextGroup <= todaySunday ? newestInNextGroup : todaySunday;
+    newerHref = `/week/${dest}`;
+  }
+
+  // Older group: jump COUNT weeks back from the oldest shown
+  let olderHref: string | null = null;
+  if (!atMinWeek) {
+    const oldestInPrevGroup = addDays(todaySunday, ((groupOffset - 1) * COUNT) * 7);
+    const dest = oldestInPrevGroup >= minSunday ? oldestInPrevGroup : minSunday;
+    olderHref = `/week/${dest}`;
+  }
+
+  return {
+    dateLinks: links,
+    showNewerBtn: groupOffset < 0,
+    newerHref,
+    showOlderBtn: !atMinWeek,
+    olderHref,
+  };
+}
+
+function addMonthOffset(ym: string, n: number): string {
+  const y = parseInt(ym.slice(0, 4), 10);
+  const m = parseInt(ym.slice(5, 7), 10) - 1 + n;
+  const d = new Date(Date.UTC(y, m, 1, 12));
+  return d.toISOString().slice(0, 7);
+}
+
+export function computeMonthBarLinks(
+  selectedMonth: string,
+  today: string,
+): DateBarData {
+  const COUNT = 5;
+  const todayMonth = today.slice(0, 7);
+  const minMonth = MIN_DATE.slice(0, 7);
+
+  // Group offset: group 0 = most recent COUNT months ending at todayMonth.
+  const selYear = parseInt(selectedMonth.slice(0, 4), 10);
+  const selMon = parseInt(selectedMonth.slice(5, 7), 10);
+  const todYear = parseInt(todayMonth.slice(0, 4), 10);
+  const todMon = parseInt(todayMonth.slice(5, 7), 10);
+  const monthsBehind = (todYear - selYear) * 12 + (todMon - selMon);
+  const groupOffset = monthsBehind >= 0 ? -Math.floor(monthsBehind / COUNT) : 0;
+
+  const links: DateLink[] = [];
+  for (let i = 0; i < COUNT; i++) {
+    const iso = addMonthOffset(todayMonth, groupOffset * COUNT - i);
+    if (iso < minMonth) continue;
+    if (iso > todayMonth) continue;
+
+    const d = new Date(`${iso}-01T12:00:00Z`);
+    let label: string;
+    if (groupOffset === 0 && i === 0) {
+      label = 'This Month';
+    } else if (groupOffset === 0 && i === 1) {
+      label = 'Last Month';
+    } else {
+      label = d.toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      });
+    }
+
+    links.push({
+      label,
+      href: `/month/${iso}`,
+      active: iso === selectedMonth,
+    });
+  }
+
+  const oldestShown = links.length > 0 ? links[links.length - 1].href.slice(7) : minMonth;
+  const atMinMonth = oldestShown <= minMonth;
+
+  // Newer group
+  let newerHref: string | null = null;
+  if (groupOffset < 0) {
+    const newestInNextGroup = addMonthOffset(todayMonth, (groupOffset + 1) * COUNT);
+    const dest = newestInNextGroup <= todayMonth ? newestInNextGroup : todayMonth;
+    newerHref = `/month/${dest}`;
+  }
+
+  // Older group
+  let olderHref: string | null = null;
+  if (!atMinMonth) {
+    const oldestInPrevGroup = addMonthOffset(todayMonth, (groupOffset - 1) * COUNT);
+    const dest = oldestInPrevGroup >= minMonth ? oldestInPrevGroup : minMonth;
+    olderHref = `/month/${dest}`;
+  }
+
+  return {
+    dateLinks: links,
+    showNewerBtn: groupOffset < 0,
+    newerHref,
+    showOlderBtn: !atMinMonth,
+    olderHref,
   };
 }
 
@@ -138,7 +375,7 @@ export interface PageLink {
 }
 
 export function computePageLinks(
-  date: string,
+  basePath: string,
   currentPage: number,
   totalPages: number,
 ): PageLink[] {
@@ -147,7 +384,7 @@ export function computePageLinks(
   for (let i = 1; i <= capped; i++) {
     links.push({
       number: i,
-      href: i <= 1 ? `/date/${date}` : `/date/${date}/${i}`,
+      href: i <= 1 ? basePath : `${basePath}/${i}`,
       active: i === currentPage,
     });
   }
@@ -169,7 +406,7 @@ export function buildJsonLd(
     {
       '@context': 'https://schema.org',
       '@type': 'ItemList',
-      name: `Top Hacker News Stories – ${formatDate(date)}`,
+      name: `Top Hacker News Stories - ${formatDate(date)}`,
       url,
       itemListElement: stories.map((story) => ({
         '@type': 'ListItem',
