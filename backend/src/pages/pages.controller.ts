@@ -1,5 +1,5 @@
-import { Controller, Get, Param, ParseIntPipe, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Controller, Get, Param, ParseIntPipe, Req, Res } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { StoriesService } from '../stories/stories.service';
 import {
   MIN_DATE,
@@ -26,8 +26,16 @@ export class PagesController {
   constructor(private readonly storiesService: StoriesService) { }
 
   @Get()
-  redirectToToday(@Res() res: Response) {
-    res.redirect(302, `/date/${todayIso()}`);
+  async indexPage(@Req() req: Request, @Res() res: Response) {
+    const today = todayIso();
+    const cookiePeriod = req.cookies?.['hn-period'];
+    if (cookiePeriod === 'week') {
+      return this.renderPage('week', getSundayStart(today), 1, res);
+    }
+    if (cookiePeriod === 'month') {
+      return this.renderPage('month', getMonthOf(today), 1, res);
+    }
+    return this.renderPage('day', today, 1, res);
   }
 
   // --- Day routes (existing) ---
