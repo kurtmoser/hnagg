@@ -3,8 +3,8 @@
  * to a UTC Date at midnight ET on that date.
  */
 export function etMidnightAsUtc(dateStr: string): Date {
-  // Try EST (UTC-5) first, then EDT (UTC-4)
-  for (const offsetHours of [5, 4]) {
+  // Try EDT (UTC-4) first, then EST (UTC-5)
+  for (const offsetHours of [4, 5]) {
     const candidate = new Date(`${dateStr}T00:00:00Z`);
     candidate.setUTCHours(candidate.getUTCHours() + offsetHours);
 
@@ -18,7 +18,7 @@ export function etMidnightAsUtc(dateStr: string): Date {
   }
 
   // Fallback (should not happen for valid dates)
-  return new Date(`${dateStr}T05:00:00Z`);
+  return new Date(`${dateStr}T04:00:00Z`);
 }
 
 /**
