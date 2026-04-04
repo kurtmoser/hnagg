@@ -215,7 +215,7 @@ export class PagesController {
       : `Top Hacker News Stories - ${formatPeriodHeading(dateOrMonth, period)}`;
     const heading = periodLabel;
     const metaDescription = `Top ranked Hacker News stories for ${formatPeriodHeading(dateOrMonth, period)}.`;
-    const canonicalUrl = `${DOMAIN}${basePath}`;
+    const canonicalUrl = isHome ? DOMAIN : `${DOMAIN}${basePath}`;
 
     // For day view, use the date for JSON-LD; for others use fromDate
     const jsonLdDate = period === 'day' ? dateOrMonth : fromDate;
