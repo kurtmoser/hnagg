@@ -4,7 +4,7 @@ Daily rankings of the top Hacker News stories, organized by date. Live at [hnagg
 
 ## Architecture
 
-- **Backend** -- NestJS application that serves HTML pages (Handlebars templates) and a REST API. Streams live updates from the HN Firebase API, stores stories and score/comment snapshots in PostgreSQL, serves paginated stories by date, and generates sitemaps.
+- **Backend** -- NestJS application that serves HTML pages (Handlebars templates) and a REST API. Streams live updates from the HN Firebase API, stores stories and score/comment snapshots in PostgreSQL, serves paginated stories by day/week/month, and generates sitemaps.
 - **Database** -- PostgreSQL 18.
 
 ## Prerequisites
@@ -42,3 +42,7 @@ docker compose exec backend npm run cli fetch-og-metadata-for-date <date>     # 
 docker compose exec backend npm run cli fetch-og-metadata-for-date <date> --force  # refetch even if metadata already exists
 docker compose exec backend npm run cli import-data                           # one-time bulk import
 ```
+
+## License
+
+MIT

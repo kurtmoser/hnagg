@@ -9,6 +9,8 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 | `backend`  | 50142 | NestJS app — HTML pages + REST API (port 3000) |
 | `postgres` | 50143 | PostgreSQL 18 database                         |
 
+OG metadata fetching uses Axios with a browser-like User-Agent. For sites that return 403, it falls back to `curl_chrome136` (curl-impersonate), which impersonates a real Chrome browser at the TLS fingerprint level. This binary is installed automatically inside the Docker image.
+
 ### Database Schema
 
 - **`hn_items`** — Stores HackerNews items (stories, comments, etc.) with all fields from the HN API.
@@ -22,10 +24,15 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 
 | Method | Path                  | Description                              |
 |--------|-----------------------|------------------------------------------|
-| GET    | `/`                   | Redirects to `/date/{today}`             |
+| GET    | `/`                   | Renders the current period view (reads `hn-period` cookie: day/week/month) |
 | GET    | `/date/:date`         | Stories for a date (page 1)              |
 | GET    | `/date/:date/:page`   | Stories for a date (specific page)       |
+| GET    | `/week/:date`         | Stories for a week (date must be a Sunday, YYYY-MM-DD) |
+| GET    | `/week/:date/:page`   | Stories for a week (specific page)       |
+| GET    | `/month/:month`       | Stories for a month (YYYY-MM)            |
+| GET    | `/month/:month/:page` | Stories for a month (specific page)      |
 | GET    | `/sitemap.xml`        | XML sitemap                              |
+| GET    | `/robots.txt`         | Robots.txt for crawlers                  |
 
 **API (JSON)**
 
@@ -43,7 +50,8 @@ A full-stack application that aggregates HackerNews stories, tracks score and co
 | `import-data`      | One-off import of the latest 100 stories from HN API   |
 | `stream-updates`   | Long-running SSE listener that syncs item updates in real-time |
 | `fetch-og-metadata <itemId>` | Fetch OG metadata and download image for a single story |
-| `fetch-og-metadata-for-date <YYYY-MM-DD>` | Fetch OG metadata for the top 150 stories on a given date (skips items that already have metadata) |
+| `fetch-og-metadata-for-date <YYYY-MM-DD>` | Fetch OG metadata for the top 150 stories on a given date (skips items that already have metadata; retries failed fetches up to 3×) |
+| `fetch-og-metadata-for-date <YYYY-MM-DD> --force` | Same, but refetches even if metadata already exists |
 
 ## Setup
 
