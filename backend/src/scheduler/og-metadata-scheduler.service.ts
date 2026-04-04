@@ -8,7 +8,7 @@ export class OgMetadataSchedulerService {
 
   constructor(private readonly ogMetadataService: OgMetadataService) {}
 
-  @Cron('0 */2 * * *', { timeZone: 'America/New_York' })
+  @Cron('*/5 * * * *', { timeZone: 'America/New_York' })
   async handleCron(): Promise<void> {
     const now = new Date();
     const today = now.toLocaleDateString('en-CA', {

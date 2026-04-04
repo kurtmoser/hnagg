@@ -14,6 +14,8 @@ import { etDateToUtcRange } from '../common/timezone';
 const execFileAsync = promisify(execFile);
 const IMAGES_DIR = '/app/images';
 const CURL_IMPERSONATE_BIN = '/usr/local/bin/curl_chrome136';
+const MAX_FETCH_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class OgMetadataService {
@@ -50,18 +52,23 @@ export class OgMetadataService {
       items = allItems;
     } else {
       const itemIds = allItems.map((i) => i.id);
-      const existingIds = new Set(
-        itemIds.length > 0
-          ? (
-            await this.metadataRepo
-              .createQueryBuilder('meta')
-              .select('meta.id')
-              .where('meta.id IN (:...ids)', { ids: itemIds })
-              .getMany()
-          ).map((m) => m.id)
-          : [],
-      );
-      items = allItems.filter((i) => !existingIds.has(i.id));
+      const existingMetadata = itemIds.length > 0
+        ? await this.metadataRepo
+            .createQueryBuilder('meta')
+            .select(['meta.id', 'meta.fetch_failed', 'meta.fetch_attempt_count', 'meta.last_fetch_attempted_at'])
+            .where('meta.id IN (:...ids)', { ids: itemIds })
+            .getMany()
+        : [];
+      const metadataMap = new Map(existingMetadata.map((m) => [m.id, m]));
+      const oneHourAgo = new Date(Date.now() - RETRY_DELAY_MS);
+      items = allItems.filter((item) => {
+        const meta = metadataMap.get(item.id);
+        if (!meta) return true;
+        if (!meta.fetch_failed) return false;
+        if (meta.fetch_attempt_count >= MAX_FETCH_ATTEMPTS) return false;
+        if (meta.last_fetch_attempted_at && meta.last_fetch_attempted_at > oneHourAgo) return false;
+        return true;
+      });
     }
 
     this.logger.log(
@@ -81,6 +88,7 @@ export class OgMetadataService {
         await this.fetchAndStoreOgMetadata(item.id, item.url!);
       } catch (err) {
         this.logger.error(`Failed for item ${item.id}: ${err.message ?? err}`);
+        await this.recordFetchFailure(item.id);
       }
     }
 
@@ -154,9 +162,23 @@ export class OgMetadataService {
     metadata.og_image = ogImage;
     metadata.og_description = ogDescription;
     metadata.local_image_path = localImagePath;
+    metadata.fetch_failed = false;
+    metadata.fetch_attempt_count = (metadata.fetch_attempt_count ?? 0) + 1;
+    metadata.last_fetch_attempted_at = new Date();
     await this.metadataRepo.save(metadata);
 
     console.log(`Metadata saved for item ${itemId}`);
+  }
+
+  private async recordFetchFailure(itemId: number): Promise<void> {
+    let metadata = await this.metadataRepo.findOneBy({ id: itemId });
+    if (!metadata) {
+      metadata = this.metadataRepo.create({ id: itemId });
+    }
+    metadata.fetch_failed = true;
+    metadata.fetch_attempt_count = (metadata.fetch_attempt_count ?? 0) + 1;
+    metadata.last_fetch_attempted_at = new Date();
+    await this.metadataRepo.save(metadata);
   }
 
   extractMetaTag(html: string, property: string): string | null {

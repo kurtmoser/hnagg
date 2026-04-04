@@ -36,6 +36,15 @@ export class HnItemMetadata {
   @Column({ type: 'text', nullable: true })
   image_url: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  fetch_failed: boolean;
+
+  @Column({ type: 'integer', default: 0 })
+  fetch_attempt_count: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_fetch_attempted_at: Date | null;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
