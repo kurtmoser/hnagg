@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -9,7 +11,9 @@ import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { etDateToUtcRange } from '../common/timezone';
 
+const execFileAsync = promisify(execFile);
 const IMAGES_DIR = '/app/images';
+const CURL_IMPERSONATE_BIN = '/usr/local/bin/curl_chrome136';
 
 @Injectable()
 export class OgMetadataService {
@@ -98,22 +102,36 @@ export class OgMetadataService {
     itemId: number,
     url: string,
   ): Promise<void> {
-    const { data: html } = await axios.get<string>(url, {
-      timeout: 15_000,
-      maxRedirects: 5,
-      responseType: 'text',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://hnagg.com/',
-        'Connection': 'keep-alive',
-        'Sec-Fetch-Site': 'cross-site',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Dest': 'document',
-      },
-    });
+    let html: string;
+    try {
+      const { data } = await axios.get<string>(url, {
+        timeout: 15_000,
+        maxRedirects: 5,
+        responseType: 'text',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://hnagg.com/',
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Site': 'cross-site',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Dest': 'document',
+        },
+      });
+      html = data;
+    } catch (err) {
+      if (err.response?.status === 403) {
+        this.logger.warn(`Axios got 403 for ${url}, retrying with curl-impersonate`);
+        const { stdout } = await execFileAsync(CURL_IMPERSONATE_BIN, [
+          '--silent', '--location', '--max-time', '15', '--compressed', url,
+        ], { maxBuffer: 10 * 1024 * 1024 });
+        html = stdout;
+      } else {
+        throw err;
+      }
+    }
 
     const ogImage = this.extractImageUrl(html);
     const ogDescription = this.extractMetaTag(html, 'og:description');
@@ -209,25 +227,46 @@ export class OgMetadataService {
     itemId: number,
   ): Promise<string | null> {
     try {
-      const response = await axios.get(imageUrl, {
-        timeout: 15_000,
-        responseType: 'arraybuffer',
-        maxContentLength: 10 * 1024 * 1024,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Referer': 'https://hnagg.com/',
-          'Connection': 'keep-alive',
-        },
-      });
+      let imageBuffer: Buffer;
+      try {
+        const response = await axios.get(imageUrl, {
+          timeout: 15_000,
+          responseType: 'arraybuffer',
+          maxContentLength: 10 * 1024 * 1024,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Referer': 'https://hnagg.com/',
+            'Connection': 'keep-alive',
+          },
+        });
+        imageBuffer = Buffer.from(response.data);
+      } catch (err) {
+        if (err.response?.status === 403) {
+          this.logger.warn(`Axios got 403 for image ${imageUrl}, retrying with curl-impersonate`);
+          const tmpFile = `/tmp/curl-img-${itemId}`;
+          try {
+            await execFileAsync(CURL_IMPERSONATE_BIN, [
+              '--silent', '--location', '--max-time', '15',
+              '--output', tmpFile,
+              imageUrl,
+            ]);
+            imageBuffer = fs.readFileSync(tmpFile);
+          } finally {
+            if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+          }
+        } else {
+          throw err;
+        }
+      }
 
       fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
       const filename = `${itemId}.webp`;
       const filepath = path.join(IMAGES_DIR, filename);
 
-      await sharp(Buffer.from(response.data))
+      await sharp(imageBuffer)
         .resize(160, 120, { fit: 'cover' })
         .webp({ quality: 80 })
         .toFile(filepath);
