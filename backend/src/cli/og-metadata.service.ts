@@ -20,7 +20,7 @@ export class OgMetadataService {
     private readonly hnItemRepo: Repository<HnItem>,
     @InjectRepository(HnItemMetadata)
     private readonly metadataRepo: Repository<HnItemMetadata>,
-  ) {}
+  ) { }
 
   async fetchOgMetadataForDate(
     dateStr: string,
@@ -49,12 +49,12 @@ export class OgMetadataService {
       const existingIds = new Set(
         itemIds.length > 0
           ? (
-              await this.metadataRepo
-                .createQueryBuilder('meta')
-                .select('meta.id')
-                .where('meta.id IN (:...ids)', { ids: itemIds })
-                .getMany()
-            ).map((m) => m.id)
+            await this.metadataRepo
+              .createQueryBuilder('meta')
+              .select('meta.id')
+              .where('meta.id IN (:...ids)', { ids: itemIds })
+              .getMany()
+          ).map((m) => m.id)
           : [],
       );
       items = allItems.filter((i) => !existingIds.has(i.id));
@@ -99,13 +99,19 @@ export class OgMetadataService {
     url: string,
   ): Promise<void> {
     const { data: html } = await axios.get<string>(url, {
-      timeout: 10_000,
+      timeout: 15_000,
       maxRedirects: 5,
       responseType: 'text',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        Accept: 'text/html',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://hnagg.com/',
+        'Connection': 'keep-alive',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Dest': 'document',
       },
     });
 
@@ -208,8 +214,11 @@ export class OgMetadataService {
         responseType: 'arraybuffer',
         maxContentLength: 10 * 1024 * 1024,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://hnagg.com/',
+          'Connection': 'keep-alive',
         },
       });
 
