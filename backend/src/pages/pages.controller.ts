@@ -30,12 +30,12 @@ export class PagesController {
     const today = todayIso();
     const cookiePeriod = req.cookies?.['hn-period'];
     if (cookiePeriod === 'week') {
-      return this.renderPage('week', getSundayStart(today), 1, res);
+      return this.renderPage('week', getSundayStart(today), 1, res, true);
     }
     if (cookiePeriod === 'month') {
-      return this.renderPage('month', getMonthOf(today), 1, res);
+      return this.renderPage('month', getMonthOf(today), 1, res, true);
     }
-    return this.renderPage('day', today, 1, res);
+    return this.renderPage('day', today, 1, res, true);
   }
 
   // --- Day routes (existing) ---
@@ -122,6 +122,7 @@ export class PagesController {
     dateOrMonth: string,
     page: number,
     res: Response,
+    isHome = false,
   ) {
     const today = todayIso();
     const minDate = MIN_DATE;
@@ -209,7 +210,9 @@ export class PagesController {
     const pageLinks = computePageLinks(basePath, page, result.meta.totalPages);
 
     // Heading
-    const periodLabel = `Top Hacker News Stories - ${formatPeriodHeading(dateOrMonth, period)}`;
+    const periodLabel = isHome
+      ? 'HNAgg - Top Hacker News Stories'
+      : `Top Hacker News Stories - ${formatPeriodHeading(dateOrMonth, period)}`;
     const heading = periodLabel;
     const metaDescription = `Top ranked Hacker News stories for ${formatPeriodHeading(dateOrMonth, period)}.`;
     const canonicalUrl = `${DOMAIN}${basePath}`;

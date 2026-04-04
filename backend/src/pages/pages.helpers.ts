@@ -400,7 +400,7 @@ export function buildJsonLd(
     {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Hacker News Aggregator',
+      name: 'HNAgg',
       url: `${DOMAIN}/`,
     },
     {
