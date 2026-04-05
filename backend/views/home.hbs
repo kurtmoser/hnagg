@@ -444,7 +444,7 @@
 
 <script>
 (function() {
-  var startX = 0, startY = 0;
+  var startX = 0, startY = 0, startTarget = null;
   var SWIPE_THRESHOLD = 50;
   var MIN_DATE = '{{minDate}}';
   var activeDate = '{{date}}';
@@ -482,12 +482,13 @@
   document.addEventListener('touchstart', function(e) {
     startX = e.changedTouches[0].clientX;
     startY = e.changedTouches[0].clientY;
+    startTarget = e.target;
   });
 
   document.addEventListener('touchend', function(e) {
     var deltaX = e.changedTouches[0].clientX - startX;
     var deltaY = e.changedTouches[0].clientY - startY;
-    if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+    if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY) && !(startTarget && startTarget.closest('.date-bar-links'))) {
       if (period === 'day') {
         if (deltaX > 0) {
           var next = addDays(activeDate, 1);
