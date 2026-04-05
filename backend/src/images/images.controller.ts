@@ -21,6 +21,6 @@ export class ImagesController {
       throw new NotFoundException();
     }
 
-    res.sendFile(filepath);
+    res.sendFile(filepath, { maxAge: '7d' });
   }
 }
