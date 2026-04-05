@@ -38,6 +38,8 @@ services:
       - "traefik.http.routers.hnagg.entrypoints=websecure"
       - "traefik.http.routers.hnagg.tls=true"
       - "traefik.http.routers.hnagg.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hnagg.middlewares=hnagg-compress"
+      - "traefik.http.middlewares.hnagg-compress.compress.defaultencoding=gzip"
       - "traefik.http.services.hnagg.loadbalancer.server.port=3000"
       # www → non-www redirect
       - "traefik.http.routers.hnagg-www.rule=Host(`www.hnagg.com`)"
