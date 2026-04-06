@@ -28,6 +28,11 @@ export class PagesController {
   @Get()
   async indexPage(@Req() req: Request, @Res() res: Response) {
     const today = todayIso();
+    const queryPeriod = req.query?.['period'];
+    if (queryPeriod === 'day' || queryPeriod === 'week' || queryPeriod === 'month') {
+      res.cookie('hn-period', queryPeriod, { maxAge: 31536000000, path: '/', sameSite: 'lax' });
+      return res.redirect('/');
+    }
     const cookiePeriod = req.cookies?.['hn-period'];
     if (cookiePeriod === 'week') {
       return this.renderPage('week', getSundayStart(today), 1, res, true);
@@ -223,9 +228,9 @@ export class PagesController {
 
     // Cog links: always navigate to current week/month/day
     const cogLinks = {
-      day: `/date/${today}`,
-      week: `/week/${getSundayStart(today)}`,
-      month: `/month/${getMonthOf(today)}`,
+      day: `/?period=day`,
+      week: `/?period=week`,
+      month: `/?period=month`,
     };
 
     res.render('home', {
