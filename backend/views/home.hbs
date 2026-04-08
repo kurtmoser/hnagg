@@ -28,6 +28,8 @@
       background: #fff;
       color: #111827;
       line-height: 1.5;
+      overscroll-behavior-x: none;
+      touch-action: pan-y pinch-zoom;
     }
 
     /* Header */
@@ -85,6 +87,7 @@
       scrollbar-width: none;
       flex: 1;
       min-width: 0;
+      touch-action: auto;
     }
     .date-bar-links::-webkit-scrollbar {
       display: none;
@@ -478,6 +481,10 @@
     });
   }
 
+  function navigateTo(url) {
+    window.location.href = url;
+  }
+
   // Swipe navigation
   document.addEventListener('touchstart', function(e) {
     startX = e.changedTouches[0].clientX;
@@ -489,33 +496,34 @@
     var deltaX = e.changedTouches[0].clientX - startX;
     var deltaY = e.changedTouches[0].clientY - startY;
     if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY) && !(startTarget && startTarget.closest('.date-bar-links'))) {
+      e.preventDefault();
       if (period === 'day') {
         if (deltaX > 0) {
           var next = addDays(activeDate, 1);
-          if (next <= todayIso) window.location.href = '/date/' + next;
+          if (next <= todayIso) navigateTo('/date/' + next);
         } else {
           var prev = addDays(activeDate, -1);
-          if (prev >= MIN_DATE) window.location.href = '/date/' + prev;
+          if (prev >= MIN_DATE) navigateTo('/date/' + prev);
         }
       } else if (period === 'week') {
         if (deltaX > 0) {
           var nextW = addDays(activeDate, 7);
-          if (nextW <= todayIso) window.location.href = '/week/' + nextW;
+          if (nextW <= todayIso) navigateTo('/week/' + nextW);
         } else {
           var prevW = addDays(activeDate, -7);
-          if (prevW >= MIN_DATE) window.location.href = '/week/' + prevW;
+          if (prevW >= MIN_DATE) navigateTo('/week/' + prevW);
         }
       } else if (period === 'month') {
         if (deltaX > 0) {
           var nextM = addMonths(activeDate, 1);
-          if (nextM <= todayIso.slice(0, 7)) window.location.href = '/month/' + nextM;
+          if (nextM <= todayIso.slice(0, 7)) navigateTo('/month/' + nextM);
         } else {
           var prevM = addMonths(activeDate, -1);
-          if (prevM >= MIN_DATE.slice(0, 7)) window.location.href = '/month/' + prevM;
+          if (prevM >= MIN_DATE.slice(0, 7)) navigateTo('/month/' + prevM);
         }
       }
     }
-  });
+  }, { passive: false });
 })();
 </script>
 
