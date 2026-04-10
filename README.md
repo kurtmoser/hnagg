@@ -1,6 +1,6 @@
 # Hacker News Aggregator
 
-Daily rankings of the top Hacker News stories, organized by date. Live at [hnagg.com](https://hnagg.com).
+Daily rankings of the top Hacker News stories, organized by date, week or month. Built to make it easy to see what's currently and recently been trending. Intentionally kept simple and minimal. Live at [hnagg.com](https://hnagg.com).
 
 ## Architecture
 
