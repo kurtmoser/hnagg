@@ -141,7 +141,10 @@ export class OgMetadataService {
       }
     }
 
-    const ogImage = this.extractImageUrl(html);
+    const rawOgImage = this.extractImageUrl(html);
+    const ogImage = rawOgImage?.startsWith('/')
+      ? new URL(url).origin + rawOgImage
+      : rawOgImage ?? null;
     const ogDescription = this.extractMetaTag(html, 'og:description');
 
     console.log(`image = ${ogImage ?? '(none)'}`);
