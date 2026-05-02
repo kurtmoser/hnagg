@@ -21,12 +21,14 @@ import {
   periodDateRange,
 } from './pages.helpers';
 
+type PageResponse = Response<unknown, { cspNonce?: string }>;
+
 @Controller()
 export class PagesController {
   constructor(private readonly storiesService: StoriesService) { }
 
   @Get()
-  async indexPage(@Req() req: Request, @Res() res: Response) {
+  async indexPage(@Req() req: Request, @Res() res: PageResponse) {
     const today = todayIso();
     const queryPeriod = req.query?.['period'];
     if (queryPeriod === 'day' || queryPeriod === 'week' || queryPeriod === 'month') {
@@ -48,7 +50,7 @@ export class PagesController {
   @Get('date/:date')
   async datePage(
     @Param('date') date: string,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     return this.renderPage('day', date, 1, res);
   }
@@ -57,7 +59,7 @@ export class PagesController {
   async datePageWithPage(
     @Param('date') date: string,
     @Param('page', ParseIntPipe) page: number,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     return this.renderPage('day', date, page, res);
   }
@@ -67,7 +69,7 @@ export class PagesController {
   @Get('week/:date')
   async weekPage(
     @Param('date') date: string,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.redirect(302, '/');
@@ -83,7 +85,7 @@ export class PagesController {
   async weekPageWithPage(
     @Param('date') date: string,
     @Param('page', ParseIntPipe) page: number,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.redirect(302, '/');
@@ -100,7 +102,7 @@ export class PagesController {
   @Get('month/:month')
   async monthPage(
     @Param('month') month: string,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return res.redirect(302, '/');
@@ -112,7 +114,7 @@ export class PagesController {
   async monthPageWithPage(
     @Param('month') month: string,
     @Param('page', ParseIntPipe) page: number,
-    @Res() res: Response,
+    @Res() res: PageResponse,
   ) {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return res.redirect(302, '/');
@@ -126,7 +128,7 @@ export class PagesController {
     period: Period,
     dateOrMonth: string,
     page: number,
-    res: Response,
+    res: PageResponse,
     isHome = false,
   ) {
     const today = todayIso();
@@ -237,6 +239,7 @@ export class PagesController {
       pageTitle: heading,
       metaDescription,
       canonicalUrl,
+      cspNonce: res.locals.cspNonce,
       jsonLd,
       heading,
       date: dateOrMonth,
