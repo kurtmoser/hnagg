@@ -24,6 +24,6 @@ RUN apk add --no-cache ca-certificates bash \
     && tar -xzf /tmp/curl-impersonate.tar.gz -C /usr/local/bin curl_chrome136 curl-impersonate \
     && chmod +x /usr/local/bin/curl_chrome136 /usr/local/bin/curl-impersonate \
     && rm /tmp/curl-impersonate.tar.gz \
-    && mkdir -p /app/images
+    && mkdir -p /app/images /app/favicons
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

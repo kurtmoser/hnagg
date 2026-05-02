@@ -20,6 +20,7 @@ services:
       - "50142:3000"
     volumes:
       - ./images:/app/images:Z
+      - ./favicons:/app/favicons:Z
     environment:
       DB_HOST: postgres
       DB_PORT: ${DB_PORT}

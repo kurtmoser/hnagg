@@ -2,3 +2,5 @@
 .env.*.local
 images/*
 !images/.gitkeep
+favicons/*
+!favicons/.gitkeep

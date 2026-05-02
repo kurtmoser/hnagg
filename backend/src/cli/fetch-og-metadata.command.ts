@@ -33,14 +33,11 @@ export class FetchOgMetadataCommand extends CommandRunner {
       return;
     }
 
-    if (!item.url) {
-      console.error(`HN item ${itemId} has no URL`);
-      process.exitCode = 1;
-      return;
-    }
-
     try {
-      await this.ogMetadataService.fetchAndStoreOgMetadata(itemId, item.url);
+      await this.ogMetadataService.fetchAndStoreOgMetadata(
+        itemId,
+        this.ogMetadataService.getMetadataFetchUrl(item),
+      );
     } catch (err) {
       console.error('Failed:', err.message ?? err);
       process.exitCode = 1;

@@ -16,7 +16,7 @@ OG metadata fetching uses Axios with a browser-like User-Agent. For sites that r
 - **`hn_items`** — Stores HackerNews items (stories, comments, etc.) with all fields from the HN API.
 - **`score_snapshots`** — Records point-in-time score values for stories. A new row is inserted on first import and whenever a score change is detected during sync.
 - **`descendants_snapshots`** — Records point-in-time comment count (descendants) values for stories, same logic as score snapshots.
-- **`hn_items_metadata`** — Stores OpenGraph metadata (og:image, og:description) and local image paths for stories.
+- **`hn_items_metadata`** — Stores OpenGraph metadata, favicon URLs, and local asset paths for stories.
 
 ### Routes
 
@@ -42,6 +42,7 @@ OG metadata fetching uses Axios with a browser-like User-Agent. For sites that r
 | GET    | `/api/stories/:id/score-history`       | Score snapshots over time for a story    |
 | GET    | `/api/stories/:id/descendants-history` | Comment count snapshots over time        |
 | GET    | `/api/images/:filename`                | Serves locally stored OG images          |
+| GET    | `/api/favicons/:filename`              | Serves locally stored favicons           |
 
 ### CLI Commands
 
@@ -100,7 +101,7 @@ docker compose exec backend node dist/cli/cli-main.js fetch-og-metadata <item-id
 docker compose exec backend node dist/cli/cli-main.js fetch-og-metadata-for-date <yyyy-mm-dd>
 ```
 
-This fetches story URLs, extracts `og:image` and `og:description` meta tags, downloads images to `./images/`, and saves the metadata to the database. The downloaded images are served at `/api/images/:filename` and included in the `/api/stories` response via the `metadata` relation.
+This fetches story URLs, extracts `og:image`, favicon links, and `og:description` meta tags, downloads OG images to `./images/` and favicons to `./favicons/`, and saves the metadata to the database. The downloaded assets are served at `/api/images/:filename` and `/api/favicons/:filename`.
 
 ---
 

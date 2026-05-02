@@ -77,9 +77,15 @@
               <img class="story-image" src="/api/images/{{this.imagePath}}" alt="{{this.title}}" loading="lazy">
             </a>
           {{else}}
-            <a href="{{this.storyUrl}}" target="_blank" rel="noopener">
-              <div class="story-image-placeholder"></div>
-            </a>
+            {{#if this.faviconPath}}
+              <a class="story-favicon-frame" href="{{this.storyUrl}}" target="_blank" rel="noopener">
+                <img class="story-favicon" src="/api/favicons/{{this.faviconPath}}" alt="" loading="lazy">
+              </a>
+            {{else}}
+              <a href="{{this.storyUrl}}" target="_blank" rel="noopener">
+                <div class="story-image-placeholder"></div>
+              </a>
+            {{/if}}
           {{/if}}
           <div class="story-text">
             <div class="story-title-row">

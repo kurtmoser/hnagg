@@ -28,6 +28,12 @@ export class HnItemMetadata {
   local_image_path: string | null;
 
   @Column({ type: 'text', nullable: true })
+  favicon_url: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  local_favicon_path: string | null;
+
+  @Column({ type: 'text', nullable: true })
   tiny_description: string | null;
 
   @Column({ type: 'text', nullable: true })

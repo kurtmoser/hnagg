@@ -194,6 +194,7 @@ export class PagesController {
         descendants: story.descendants ?? 0,
         rank: (page - 1) * limit + index + 1,
         imagePath: story.metadata?.local_image_path || null,
+        faviconPath: story.metadata?.local_favicon_path || null,
       };
     });
 
