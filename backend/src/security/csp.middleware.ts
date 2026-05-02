@@ -29,6 +29,8 @@ export function contentSecurityPolicyMiddleware(
 
   res.locals.cspNonce = nonce;
   res.setHeader('Content-Security-Policy', buildContentSecurityPolicy(nonce));
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
 
   next();
 }
