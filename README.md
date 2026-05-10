@@ -4,6 +4,28 @@ Daily rankings of the top Hacker News stories, organized by date, week or month.
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    User([User])
+    HN([HN Firebase API])
+
+    subgraph Backend["Backend container"]
+        Web[Web / NestJS]
+        Cron[<b>Thumbnails cron</b><br/>Fetching top stories'<br/>images every 5 mins]
+        Stream[<b>stream-updates</b><br/>Long-running process<br/>listening for HN updates]
+    end
+
+    subgraph Database["Database  container"]
+        PG[(PostgreSQL)]
+    end
+
+    User --> Web
+    Stream --> HN
+    Web --> PG
+    Stream --> PG
+    Cron --> PG
+```
+
 - **Backend** -- NestJS application that serves HTML pages (Handlebars templates) and a REST API. Streams live updates from the HN Firebase API, stores stories and score/comment snapshots in PostgreSQL, serves paginated stories by day/week/month, and generates sitemaps.
 - **Database** -- PostgreSQL 18.
 
