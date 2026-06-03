@@ -87,8 +87,8 @@
                 <img class="story-favicon" src="/api/favicons/{{this.faviconPath}}" alt="" loading="lazy">
               </a>
             {{else}}
-              <a href="{{this.storyUrl}}" target="_blank" rel="noopener">
-                <div class="story-image-placeholder"></div>
+              <a class="story-favicon-frame" href="{{this.storyUrl}}" target="_blank" rel="noopener">
+                <span class="story-monogram {{this.monogram.colorClass}}">{{this.monogram.letter}}</span>
               </a>
             {{/if}}
           {{/if}}

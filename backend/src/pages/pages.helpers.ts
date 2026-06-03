@@ -52,6 +52,24 @@ export function extractDomain(url: string | null): string {
   }
 }
 
+/** Number of color buckets defined as .mono-N classes in home.css. */
+export const MONOGRAM_COLORS = 10;
+
+/**
+ * Derive a monogram letter + deterministic color class from a domain.
+ * Returns a CSS class (not an inline color) because the CSP forbids inline
+ * styles — see backend/src/security/csp.middleware.ts.
+ */
+export function monogram(domain: string): { letter: string; colorClass: string } {
+  const letter = (domain.trim()[0] || '?').toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < domain.length; i++) {
+    hash = (hash * 31 + domain.charCodeAt(i)) >>> 0;
+  }
+  const colorClass = `mono-${hash % MONOGRAM_COLORS}`;
+  return { letter, colorClass };
+}
+
 /** Return the Sunday (week start) for a given ISO date. */
 export function getSundayStart(date: string): string {
   const d = new Date(`${date}T12:00:00Z`);

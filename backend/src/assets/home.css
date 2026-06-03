@@ -260,7 +260,10 @@ body {
   color: #9ca3af;
   white-space: nowrap;
 }
-.story-image, .story-image-placeholder, .story-favicon-frame {
+.story-content > a {
+  text-decoration: none;
+}
+.story-image, .story-favicon-frame {
   flex-shrink: 0;
   width: 80px;
   height: 60px;
@@ -270,9 +273,28 @@ body {
   border: 1px solid #e5e7eb;
   object-fit: cover;
 }
-.story-image-placeholder {
-  background: #f3f4f6;
+.story-monogram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  user-select: none;
 }
+.mono-0 { background: #3b82f6; }
+.mono-1 { background: #ec4899; }
+.mono-2 { background: #10b981; }
+.mono-3 { background: #f97316; }
+.mono-4 { background: #8b5cf6; }
+.mono-5 { background: #ef4444; }
+.mono-6 { background: #0891b2; }
+.mono-7 { background: #6366f1; }
+.mono-8 { background: #ca8a04; }
+.mono-9 { background: #f43f5e; }
 .story-favicon-frame {
   display: flex;
   align-items: center;
