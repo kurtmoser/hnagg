@@ -1,10 +1,14 @@
 const MIN_DATE = '2026-03-01';
 const DOMAIN = 'https://hnagg.com';
-const MAX_PAGES = 5;
-
 export type Period = 'day' | 'week' | 'month';
 
-export { MIN_DATE, DOMAIN, MAX_PAGES };
+/** Stories shown per page. */
+const PAGE_SIZE = 50;
+
+/** Pages shown per period. Currently a single page (top 50) everywhere. */
+const MAX_PAGES: Record<Period, number> = { day: 1, week: 1, month: 1 };
+
+export { MIN_DATE, DOMAIN, PAGE_SIZE, MAX_PAGES };
 
 export function todayIso(): string {
   return new Date().toLocaleDateString('en-CA', {
@@ -396,8 +400,9 @@ export function computePageLinks(
   basePath: string,
   currentPage: number,
   totalPages: number,
+  maxPages: number,
 ): PageLink[] {
-  const capped = Math.min(totalPages, MAX_PAGES);
+  const capped = Math.min(totalPages, maxPages);
   const links: PageLink[] = [];
   for (let i = 1; i <= capped; i++) {
     links.push({

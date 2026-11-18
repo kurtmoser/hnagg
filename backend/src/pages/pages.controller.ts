@@ -4,6 +4,7 @@ import { StoriesService } from '../stories/stories.service';
 import {
   MIN_DATE,
   DOMAIN,
+  PAGE_SIZE,
   MAX_PAGES,
   Period,
   todayIso,
@@ -156,14 +157,16 @@ export class PagesController {
     }
 
     // Validate page
-    if (page < 1 || page > MAX_PAGES || isNaN(page)) {
+    const maxPages = MAX_PAGES[period];
+    if (page < 1 || page > maxPages || isNaN(page)) {
       const base =
         period === 'day'
           ? `/date/${dateOrMonth}`
           : period === 'week'
             ? `/week/${dateOrMonth}`
             : `/month/${dateOrMonth}`;
-      return res.redirect(302, base);
+      // Permanent: pages beyond the cap no longer exist (e.g. old /date/x/2..5 URLs).
+      return res.redirect(301, base);
     }
 
     // Compute date range for query
@@ -172,7 +175,7 @@ export class PagesController {
     // Fetch stories
     const result = await this.storiesService.findPaginated(
       page,
-      30,
+      PAGE_SIZE,
       fromDate,
       toDate,
     );
@@ -216,8 +219,13 @@ export class PagesController {
           ? `/week/${dateOrMonth}`
           : `/month/${dateOrMonth}`;
 
-    const totalPages = Math.min(result.meta.totalPages, MAX_PAGES);
-    const pageLinks = computePageLinks(basePath, page, result.meta.totalPages);
+    const totalPages = Math.min(result.meta.totalPages, maxPages);
+    const pageLinks = computePageLinks(
+      basePath,
+      page,
+      result.meta.totalPages,
+      maxPages,
+    );
 
     // Heading
     const periodLabel = isHome
