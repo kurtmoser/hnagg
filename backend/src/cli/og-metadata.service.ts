@@ -228,21 +228,7 @@ export class OgMetadataService {
   }
 
   extractMetaTag(html: string, property: string): string | null {
-    const escapedProp = property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    const regex = new RegExp(
-      `<meta\\s+[^>]*?property\\s*=\\s*["']${escapedProp}["'][^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?\\/?>`,
-      'i',
-    );
-    const match = html.match(regex);
-    if (match) return match[1];
-
-    const regexReversed = new RegExp(
-      `<meta\\s+[^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?property\\s*=\\s*["']${escapedProp}["'][^>]*?\\/?>`,
-      'i',
-    );
-    const matchReversed = html.match(regexReversed);
-    return matchReversed ? matchReversed[1] : null;
+    return this.findTagAttribute(html, 'meta', 'property', property, 'content');
   }
 
   extractImageUrl(html: string): string | null {
@@ -255,39 +241,41 @@ export class OgMetadataService {
   }
 
   extractMetaName(html: string, name: string): string | null {
-    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    const regex = new RegExp(
-      `<meta\\s+[^>]*?name\\s*=\\s*["']${escapedName}["'][^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?\\/?>`,
-      'i',
-    );
-    const match = html.match(regex);
-    if (match) return match[1];
-
-    const regexReversed = new RegExp(
-      `<meta\\s+[^>]*?content\\s*=\\s*["']([^"']+)["'][^>]*?name\\s*=\\s*["']${escapedName}["'][^>]*?\\/?>`,
-      'i',
-    );
-    const matchReversed = html.match(regexReversed);
-    return matchReversed ? matchReversed[1] : null;
+    return this.findTagAttribute(html, 'meta', 'name', name, 'content');
   }
 
   extractLinkHref(html: string, rel: string): string | null {
-    const escapedRel = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return this.findTagAttribute(html, 'link', 'rel', rel, 'href');
+  }
 
-    const regex = new RegExp(
-      `<link\\s+[^>]*?rel\\s*=\\s*["']${escapedRel}["'][^>]*?href\\s*=\\s*["']([^"']+)["'][^>]*?\\/?>`,
-      'i',
-    );
-    const match = html.match(regex);
-    if (match) return match[1];
+  /**
+   * Returns `valueAttr` of the first `<tagName>` whose `matchAttr` equals
+   * `matchValue` (case-insensitive) and whose `valueAttr` is non-empty.
+   */
+  private findTagAttribute(
+    html: string,
+    tagName: string,
+    matchAttr: string,
+    matchValue: string,
+    valueAttr: string,
+  ): string | null {
+    const tagRegex = this.tagRegex(tagName);
+    const expected = matchValue.toLowerCase();
+    let match: RegExpExecArray | null;
 
-    const regexReversed = new RegExp(
-      `<link\\s+[^>]*?href\\s*=\\s*["']([^"']+)["'][^>]*?rel\\s*=\\s*["']${escapedRel}["'][^>]*?\\/?>`,
-      'i',
-    );
-    const matchReversed = html.match(regexReversed);
-    return matchReversed ? matchReversed[1] : null;
+    while ((match = tagRegex.exec(html)) !== null) {
+      const tag = match[0];
+      if (this.extractAttribute(tag, matchAttr)?.toLowerCase() !== expected) continue;
+      const value = this.extractAttribute(tag, valueAttr);
+      if (value) return value;
+    }
+
+    return null;
+  }
+
+  /** Matches a whole opening tag, allowing `>` inside quoted attribute values. */
+  private tagRegex(tagName: string): RegExp {
+    return new RegExp(`<${tagName}\\b(?:[^>"']|"[^"]*"|'[^']*')*>`, 'gi');
   }
 
   extractFaviconUrl(html: string, pageUrl: string): string | null {
@@ -301,7 +289,7 @@ export class OgMetadataService {
   }
 
   private extractLinkHrefByRel(html: string, requiredRelTokens: string[]): string | null {
-    const linkTagRegex = /<link\s+[^>]*?>/gi;
+    const linkTagRegex = this.tagRegex('link');
     const required = requiredRelTokens.map((token) => token.toLowerCase());
     let match: RegExpExecArray | null;
 
@@ -324,7 +312,7 @@ export class OgMetadataService {
   private extractAttribute(tag: string, attribute: string): string | null {
     const escapedAttribute = attribute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(
-      `\\s${escapedAttribute}\\s*=\\s*(["'])(.*?)\\1`,
+      `[\\s"']${escapedAttribute}\\s*=\\s*(["'])([\\s\\S]*?)\\1`,
       'i',
     );
     const match = tag.match(regex);
