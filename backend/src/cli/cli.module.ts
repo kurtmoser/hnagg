@@ -8,6 +8,8 @@ import { ImportDataCommand } from './import-data.command';
 import { OgMetadataService } from './og-metadata.service';
 import { StreamUpdatesCommand } from './stream-updates.command';
 import { AuditOgAvailabilityCommand } from './audit-og-availability.command';
+import { SummarizeForDateCommand } from './summarize-for-date.command';
+import { SummaryService } from '../summaries/summary.service';
 
 @Module({
   imports: [AppModule, HnModule],
@@ -19,6 +21,8 @@ import { AuditOgAvailabilityCommand } from './audit-og-availability.command';
     FetchOgMetadataCommand,
     FetchOgMetadataForDateCommand,
     OgMetadataService,
+    SummarizeForDateCommand,
+    SummaryService,
   ],
 })
 export class CliModule { }

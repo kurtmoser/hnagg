@@ -49,6 +49,13 @@ export class HnItemMetadata {
   @Column({ type: 'text', nullable: true, select: false })
   page_html: string | null;
 
+  /** LLM summary attempts; NONE / refusal / errors all count. */
+  @Column({ type: 'integer', default: 0 })
+  summary_attempt_count: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  summary_generated_at: Date | null;
+
   @Column({ type: 'boolean', default: false })
   fetch_failed: boolean;
 
