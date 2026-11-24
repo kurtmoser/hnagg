@@ -56,6 +56,43 @@ export function extractDomain(url: string | null): string {
   }
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+};
+
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
+    if (entity[0] === '#') {
+      const code =
+        entity[1].toLowerCase() === 'x'
+          ? parseInt(entity.slice(2), 16)
+          : parseInt(entity.slice(1), 10);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
+    }
+    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+  });
+}
+
+/**
+ * Turns a raw og:description (as scraped, entities still encoded) into a short
+ * summary line, or null if it is too short or just repeats the title.
+ */
+export function storySummary(
+  ogDescription: string | null | undefined,
+  title: string | null,
+): string | null {
+  if (!ogDescription) return null;
+  const text = decodeHtmlEntities(ogDescription).replace(/\s+/g, ' ').trim();
+  if (text.length < 30) return null;
+  if (title && text.toLowerCase() === title.trim().toLowerCase()) return null;
+  return text;
+}
+
 /** Number of color buckets defined as .mono-N classes in home.css. */
 export const MONOGRAM_COLORS = 10;
 

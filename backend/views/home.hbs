@@ -97,6 +97,9 @@
               <a class="story-title" href="{{this.storyUrl}}" target="_blank" rel="noopener">{{this.title}}</a>
               <span class="story-domain">({{this.domain}})</span>
             </div>
+            {{#if this.summary}}
+              <p class="story-summary">{{this.summary}}</p>
+            {{/if}}
             <div class="story-meta">
               <span class="score">{{this.score}} points</span>
               {{#if this.by}}
