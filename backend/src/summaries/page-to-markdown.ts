@@ -26,13 +26,19 @@ const markdown = new NodeHtmlMarkdown({
   maxConsecutiveNewlines: 2,
 });
 
+export type PageMarkdown = {
+  markdown: string;
+  /** The body has almost no text, e.g. a JavaScript app's loading placeholder. */
+  thinBody: boolean;
+};
+
 /**
  * Converts a stored page (raw HTML) into compact Markdown for the LLM: a short
  * header from <head> (title, description, JSON-LD), then the body as Markdown
  * without navigation, forms, images or link URLs. Pages whose body is nearly
  * empty (JavaScript apps) get their embedded JSON data appended instead.
  */
-export function pageToMarkdown(html: string): string {
+export function pageToMarkdown(html: string): PageMarkdown {
   const head = html.match(/<head\b[\s\S]*?<\/head\s*>/i)?.[0] ?? '';
   const bodyHtml = html.match(/<body\b[\s\S]*<\/body\s*>/i)?.[0] ?? html;
 
@@ -52,7 +58,8 @@ export function pageToMarkdown(html: string): string {
   const body = bodyToMarkdown(bodyHtml);
   parts.push(body);
 
-  if (body.length < MIN_BODY_CHARS) {
+  const thinBody = body.length < MIN_BODY_CHARS;
+  if (thinBody) {
     const embedded = scriptContents(
       html,
       /__NEXT_DATA__|application\/json/i,
@@ -64,7 +71,7 @@ export function pageToMarkdown(html: string): string {
     }
   }
 
-  return parts.filter(Boolean).join('\n\n').trim();
+  return { markdown: parts.filter(Boolean).join('\n\n').trim(), thinBody };
 }
 
 function bodyToMarkdown(bodyHtml: string): string {

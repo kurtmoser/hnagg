@@ -7,6 +7,24 @@ import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { etDateToUtcRange } from '../common/timezone';
 import { pageToMarkdown } from './page-to-markdown';
 
+/**
+ * Sentences about the page itself rather than its subject (loading state,
+ * missing text, view counts...). Kept narrow to avoid hitting real content.
+ */
+/** The model narrating its own process instead of answering. */
+const SELF_TALK_PATTERN =
+  /\b(wait,|rewriting:|let me (rewrite|try)|I (must|should) not|I cannot summarize)\b/i;
+
+const META_SENTENCE_PATTERNS = [
+  /\b(the|this) (web ?)?page\b/i,
+  /\b(is|are) (still )?loading\b/i,
+  /\bno (written|article|readable|other) (text|content)\b/i,
+  /\b(page|article|post) (content|text)\b/i,
+  /\bat the time of (the )?(snapshot|capture|writing)\b/i,
+  /\b(text|content|body) (was|is|isn't|wasn't) (unavailable|missing|not available|not shown)\b/i,
+  /\b[\d.,]+[KM]? views\b/i,
+];
+
 const MODEL = 'claude-haiku-5-5';
 const STORIES_PER_DAY = 50;
 const MAX_SUMMARY_ATTEMPTS = 3;
@@ -29,6 +47,7 @@ Rules:
 - 1 or 2 sentences, at most ${TARGET_CHARS} characters in total. Shorter is better; one sentence is often enough. Plain text, no markdown, no surrounding quotes.
 - State the substance directly: the main point, finding, announcement, or what the project or tool does. Prefer one or two concrete specifics (names, numbers) over a list of details.
 - Never describe the page itself or its format. Do not start with or include phrases like "The page", "This article", "This post", "This video", "The author", "X reports that", "According to". Do not mention view counts, comments, page state or what the page lacks.
+- Never mention the page's loading state, placeholders, missing or unavailable content, errors, or how the page was fetched or rendered. Summarize only what the page is about.
 - Do not restate the title. Neutral and factual, no hype or opinion.
 - Write in English, even if the page is in another language.
 - Focus on the main content; ignore navigation, cookie notices, ads, comments and links to other articles.
@@ -146,7 +165,10 @@ export class SummaryService {
   }
 
   private async summarizeOne(item: HnItem, meta: HnItemMetadata): Promise<void> {
-    let page = pageToMarkdown(this.pageContent(item, meta) ?? '');
+    const { markdown, thinBody } = pageToMarkdown(
+      this.pageContent(item, meta) ?? '',
+    );
+    let page = markdown;
     if (page.length > MAX_INPUT_CHARS) {
       page = page.slice(0, MAX_INPUT_CHARS) + '\n[truncated]';
     }
@@ -156,6 +178,11 @@ export class SummaryService {
       content:
         `<title>${item.title ?? ''}</title>\n` +
         `<url>${item.url ?? `https://news.ycombinator.com/item?id=${item.id}`}</url>\n` +
+        // Text posts are short by nature; only flag real pages.
+        (thinBody && item.url
+          ? 'Note: the page body has almost no readable text (it is probably rendered by JavaScript). ' +
+            'Loading or placeholder text is not content; base the summary on the title, description and any embedded data.\n'
+          : '') +
         `<page>\n${page}\n</page>`,
     };
 
@@ -170,12 +197,22 @@ export class SummaryService {
       return;
     }
 
-    if (!summary || summary === 'NONE') {
+    // A NONE anywhere in the reply (e.g. after the model second-guessed
+    // itself) means the same as a bare NONE.
+    if (!summary || /\bNONE\b/.test(summary)) {
       console.log('  -> NONE (nothing to summarize)');
       // Retrying won't change a paywall or empty page; stop trying.
       await this.recordAttempt(meta, MAX_SUMMARY_ATTEMPTS);
       return;
     }
+
+    if (SELF_TALK_PATTERN.test(summary)) {
+      console.log(`  -> rejected, model reasoning leaked into reply: ${summary}`);
+      await this.recordAttempt(meta, meta.summary_attempt_count + 1);
+      return;
+    }
+
+    summary = this.dropMetaSentences(summary);
 
     if (summary.length > MAX_CHARS) {
       console.log(`  (too long: ${summary.length} chars, asking to shorten)`);
@@ -190,8 +227,13 @@ export class SummaryService {
           },
         ]);
         const shorter = this.replyText(retry);
-        if (shorter && shorter !== 'NONE' && shorter.length < summary.length) {
-          summary = shorter;
+        if (
+          shorter &&
+          !/\bNONE\b/.test(shorter) &&
+          !SELF_TALK_PATTERN.test(shorter) &&
+          shorter.length < summary.length
+        ) {
+          summary = this.dropMetaSentences(shorter);
         }
       } catch (err) {
         this.logger.warn(
@@ -242,6 +284,22 @@ export class SummaryService {
       .join('')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  /**
+   * Removes sentences that talk about the page instead of its subject, as long
+   * as at least one sentence remains.
+   */
+  private dropMetaSentences(summary: string): string {
+    const sentences = summary.split(/(?<=[.!?])\s+(?=["“A-Z0-9])/);
+    const kept = sentences.filter(
+      (sentence) => !META_SENTENCE_PATTERNS.some((re) => re.test(sentence)),
+    );
+    if (kept.length === 0 || kept.length === sentences.length) return summary;
+    console.log(
+      `  (dropped meta sentence: ${sentences.filter((s) => !kept.includes(s)).join(' ')})`,
+    );
+    return kept.join(' ');
   }
 
   /** Cuts at the last sentence end within `max`, else at a word with "…". */
