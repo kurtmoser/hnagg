@@ -5,13 +5,19 @@ import Anthropic from '@anthropic-ai/sdk';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { etDateToUtcRange } from '../common/timezone';
-import { cleanHtmlForLlm } from './clean-html';
+import { pageToMarkdown } from './page-to-markdown';
 
 const MODEL = 'claude-haiku-5-5';
 const STORIES_PER_DAY = 50;
 const MAX_SUMMARY_ATTEMPTS = 3;
-/** ~250-300k tokens; only a handful of extreme pages are ever cut. */
-const MAX_INPUT_CHARS = 1_000_000;
+/**
+ * ~65-70k tokens of Markdown: keeps every request under the 100k-token
+ * long-context price tier. Typical pages are far smaller (median ~7k chars).
+ */
+const MAX_INPUT_CHARS = 250_000;
+/** Claude Haiku 5.5 prices (USD per token) for prompts up to 100k tokens. */
+const INPUT_PRICE = 0.1 / 1_000_000;
+const OUTPUT_PRICE = 0.5 / 1_000_000;
 
 /** Two lines of the list page hold about 220 characters on desktop. */
 const TARGET_CHARS = 200;
@@ -46,6 +52,7 @@ type Candidate = {
 export class SummaryService {
   private readonly logger = new Logger(SummaryService.name);
   private client: Anthropic | null = null;
+  private usage = { calls: 0, inputTokens: 0, outputTokens: 0 };
 
   constructor(
     @InjectRepository(HnItem)
@@ -60,6 +67,7 @@ export class SummaryService {
       return;
     }
     this.client ??= new Anthropic();
+    this.usage = { calls: 0, inputTokens: 0, outputTokens: 0 };
 
     const candidates = await this.findCandidates(dateStr, force);
     console.log(
@@ -83,7 +91,11 @@ export class SummaryService {
       }
     }
 
-    console.log(`Done summarizing ${dateStr}.`);
+    const { calls, inputTokens, outputTokens } = this.usage;
+    console.log(
+      `Done summarizing ${dateStr}: ${calls} calls, ${inputTokens} input + ${outputTokens} output tokens, ` +
+        `≈ $${this.cost(inputTokens, outputTokens).toFixed(4)}`,
+    );
   }
 
   private async findCandidates(
@@ -134,7 +146,7 @@ export class SummaryService {
   }
 
   private async summarizeOne(item: HnItem, meta: HnItemMetadata): Promise<void> {
-    let page = cleanHtmlForLlm(this.pageContent(item, meta) ?? '');
+    let page = pageToMarkdown(this.pageContent(item, meta) ?? '');
     if (page.length > MAX_INPUT_CHARS) {
       page = page.slice(0, MAX_INPUT_CHARS) + '\n[truncated]';
     }
@@ -168,12 +180,13 @@ export class SummaryService {
     if (summary.length > MAX_CHARS) {
       console.log(`  (too long: ${summary.length} chars, asking to shorten)`);
       try {
+        // Only the summary is sent back, not the page: shortening doesn't need it.
         const retry = await this.ask([
-          userMessage,
-          { role: 'assistant', content: response.content },
           {
             role: 'user',
-            content: `Too long (${summary.length} characters). Rewrite it in at most ${TARGET_CHARS} characters, following the same rules.`,
+            content:
+              `Shorten this summary to at most ${TARGET_CHARS} characters, following the same rules. ` +
+              `Reply with the shortened summary only.\n\n<summary>${summary}</summary>`,
           },
         ]);
         const shorter = this.replyText(retry);
@@ -196,14 +209,28 @@ export class SummaryService {
     console.log(`  -> ${summary}`);
   }
 
-  private ask(messages: Anthropic.MessageParam[]): Promise<Anthropic.Message> {
-    return this.client!.messages.create({
+  private async ask(
+    messages: Anthropic.MessageParam[],
+  ): Promise<Anthropic.Message> {
+    const response = await this.client!.messages.create({
       model: MODEL,
       max_tokens: 4000,
       output_config: { effort: 'medium' },
       system: SYSTEM_PROMPT,
       messages,
     });
+    const { input_tokens, output_tokens } = response.usage;
+    this.usage.calls++;
+    this.usage.inputTokens += input_tokens;
+    this.usage.outputTokens += output_tokens;
+    console.log(
+      `  (${input_tokens} in + ${output_tokens} out tokens, ≈ $${this.cost(input_tokens, output_tokens).toFixed(4)})`,
+    );
+    return response;
+  }
+
+  private cost(inputTokens: number, outputTokens: number): number {
+    return inputTokens * INPUT_PRICE + outputTokens * OUTPUT_PRICE;
   }
 
   /** The reply's text with whitespace collapsed, or null if it didn't finish normally. */
