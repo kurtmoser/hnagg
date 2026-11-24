@@ -208,12 +208,25 @@ export class OgMetadataService {
     metadata.local_image_path = localImagePath;
     metadata.favicon_url = faviconUrl;
     metadata.local_favicon_path = localFaviconPath;
+    metadata.page_html = this.toStorableHtml(html);
     metadata.fetch_failed = false;
     metadata.fetch_attempt_count = (metadata.fetch_attempt_count ?? 0) + 1;
     metadata.last_fetch_attempted_at = new Date();
     await this.metadataRepo.save(metadata);
 
     console.log(`Metadata saved for item ${itemId}`);
+  }
+
+  /**
+   * Returns the page HTML for storage, or null if the response isn't an HTML
+   * page (e.g. a PDF or image link). NUL bytes are removed because Postgres
+   * TEXT cannot hold them.
+   */
+  private toStorableHtml(body: string): string | null {
+    if (typeof body !== 'string' || !/<(html|head|body)[\s>]/i.test(body)) {
+      return null;
+    }
+    return body.replace(/\u0000/g, '');
   }
 
   private async recordFetchFailure(itemId: number): Promise<void> {

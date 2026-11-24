@@ -42,6 +42,13 @@ export class HnItemMetadata {
   @Column({ type: 'text', nullable: true })
   image_url: string | null;
 
+  /**
+   * Raw HTML of the story page as fetched (no size limit). Not loaded by
+   * default so list queries stay light; use addSelect('meta.page_html').
+   */
+  @Column({ type: 'text', nullable: true, select: false })
+  page_html: string | null;
+
   @Column({ type: 'boolean', default: false })
   fetch_failed: boolean;
 
