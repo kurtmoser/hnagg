@@ -78,9 +78,13 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
+/** Same cap as the LLM summaries (SummaryService), about two lines on desktop. */
+const MAX_SUMMARY_CHARS = 220;
+
 /**
  * Turns a raw og:description (as scraped, entities still encoded) into a short
- * summary line, or null if it is too short or just repeats the title.
+ * summary line, or null if it is too short or just repeats the title. Long
+ * descriptions are cut at a word boundary.
  */
 export function storySummary(
   ogDescription: string | null | undefined,
@@ -90,7 +94,9 @@ export function storySummary(
   const text = decodeHtmlEntities(ogDescription).replace(/\s+/g, ' ').trim();
   if (text.length < 30) return null;
   if (title && text.toLowerCase() === title.trim().toLowerCase()) return null;
-  return text;
+  if (text.length <= MAX_SUMMARY_CHARS) return text;
+  const head = text.slice(0, MAX_SUMMARY_CHARS);
+  return head.slice(0, head.lastIndexOf(' ')).replace(/[\s,;:.]+$/, '') + '…';
 }
 
 /** Number of color buckets defined as .mono-N classes in home.css. */

@@ -265,11 +265,6 @@ body {
   font-size: 0.8125rem;
   line-height: 1.4;
   color: #4b5563;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
 }
 .story-content > a {
   text-decoration: none;
