@@ -3,14 +3,11 @@ import { OgMetadataService } from './og-metadata.service';
 
 @Command({
   name: 'fetch-og-metadata-for-date',
-  description:
-    'Fetch OG metadata for the top 150 stories on a given date',
+  description: 'Fetch OG metadata for the top 150 stories on a given date',
   arguments: '<date>',
 })
 export class FetchOgMetadataForDateCommand extends CommandRunner {
-  constructor(
-    private readonly ogMetadataService: OgMetadataService,
-  ) {
+  constructor(private readonly ogMetadataService: OgMetadataService) {
     super();
   }
 
@@ -29,7 +26,8 @@ export class FetchOgMetadataForDateCommand extends CommandRunner {
 
   @Option({
     flags: '--force',
-    description: 'Refetch OG metadata for all items, even if they already have metadata',
+    description:
+      'Refetch OG metadata for all items, even if they already have metadata',
   })
   parseForce(): boolean {
     return true;

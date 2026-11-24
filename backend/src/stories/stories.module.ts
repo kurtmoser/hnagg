@@ -8,9 +8,16 @@ import { StoriesController } from './stories.controller';
 import { StoriesService } from './stories.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([HnItem, HnItemMetadata, ScoreSnapshot, DescendantsSnapshot])],
+  imports: [
+    TypeOrmModule.forFeature([
+      HnItem,
+      HnItemMetadata,
+      ScoreSnapshot,
+      DescendantsSnapshot,
+    ]),
+  ],
   controllers: [StoriesController],
   providers: [StoriesService],
   exports: [StoriesService],
 })
-export class StoriesModule { }
+export class StoriesModule {}

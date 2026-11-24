@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { OgMetadataService } from '../cli/og-metadata.service';
 import { SummaryService } from '../summaries/summary.service';
+import { errorMessage } from '../common/errors';
 
 @Injectable()
 export class OgMetadataSchedulerService {
@@ -32,8 +33,9 @@ export class OgMetadataSchedulerService {
     const today = now.toLocaleDateString('en-CA', {
       timeZone: 'America/New_York',
     });
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      .toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    const yesterday = new Date(
+      now.getTime() - 24 * 60 * 60 * 1000,
+    ).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
     this.logger.log(
       `Scheduled OG metadata fetch for ${today} and ${yesterday}`,
@@ -44,7 +46,7 @@ export class OgMetadataSchedulerService {
         await this.ogMetadataService.fetchOgMetadataForDate(dateStr);
       } catch (err) {
         this.logger.error(
-          `Failed OG metadata fetch for ${dateStr}: ${err.message ?? err}`,
+          `Failed OG metadata fetch for ${dateStr}: ${errorMessage(err)}`,
         );
       }
 
@@ -52,7 +54,7 @@ export class OgMetadataSchedulerService {
         await this.summaryService.summarizeForDate(dateStr);
       } catch (err) {
         this.logger.error(
-          `Failed summaries for ${dateStr}: ${err.message ?? err}`,
+          `Failed summaries for ${dateStr}: ${errorMessage(err)}`,
         );
       }
     }

@@ -8,7 +8,6 @@ import {
   MAX_PAGES,
   Period,
   todayIso,
-  formatDate,
   formatPeriodHeading,
   timeAgo,
   extractDomain,
@@ -28,17 +27,25 @@ type PageResponse = Response<unknown, { cspNonce?: string }>;
 
 @Controller()
 export class PagesController {
-  constructor(private readonly storiesService: StoriesService) { }
+  constructor(private readonly storiesService: StoriesService) {}
 
   @Get()
   async indexPage(@Req() req: Request, @Res() res: PageResponse) {
     const today = todayIso();
     const queryPeriod = req.query?.['period'];
-    if (queryPeriod === 'day' || queryPeriod === 'week' || queryPeriod === 'month') {
-      res.cookie('hn-period', queryPeriod, { maxAge: 31536000000, path: '/', sameSite: 'lax' });
+    if (
+      queryPeriod === 'day' ||
+      queryPeriod === 'week' ||
+      queryPeriod === 'month'
+    ) {
+      res.cookie('hn-period', queryPeriod, {
+        maxAge: 31536000000,
+        path: '/',
+        sameSite: 'lax',
+      });
       return res.redirect('/');
     }
-    const cookiePeriod = req.cookies?.['hn-period'];
+    const cookiePeriod: unknown = req.cookies?.['hn-period'];
     if (cookiePeriod === 'week') {
       return this.renderPage('week', getSundayStart(today), 1, res, true);
     }
@@ -51,10 +58,7 @@ export class PagesController {
   // --- Day routes (existing) ---
 
   @Get('date/:date')
-  async datePage(
-    @Param('date') date: string,
-    @Res() res: PageResponse,
-  ) {
+  async datePage(@Param('date') date: string, @Res() res: PageResponse) {
     return this.renderPage('day', date, 1, res);
   }
 
@@ -70,10 +74,7 @@ export class PagesController {
   // --- Week routes ---
 
   @Get('week/:date')
-  async weekPage(
-    @Param('date') date: string,
-    @Res() res: PageResponse,
-  ) {
+  async weekPage(@Param('date') date: string, @Res() res: PageResponse) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.redirect(302, '/');
     }
@@ -103,10 +104,7 @@ export class PagesController {
   // --- Month routes ---
 
   @Get('month/:month')
-  async monthPage(
-    @Param('month') month: string,
-    @Res() res: PageResponse,
-  ) {
+  async monthPage(@Param('month') month: string, @Res() res: PageResponse) {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       return res.redirect(302, '/');
     }

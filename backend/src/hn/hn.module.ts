@@ -9,8 +9,16 @@ import { HnApiService } from './hn-api.service';
 import { HnImportService } from './hn-import.service';
 
 @Module({
-  imports: [HttpModule, TypeOrmModule.forFeature([HnItem, HnItemMetadata, ScoreSnapshot, DescendantsSnapshot])],
+  imports: [
+    HttpModule,
+    TypeOrmModule.forFeature([
+      HnItem,
+      HnItemMetadata,
+      ScoreSnapshot,
+      DescendantsSnapshot,
+    ]),
+  ],
   providers: [HnApiService, HnImportService],
   exports: [HnApiService, HnImportService, TypeOrmModule],
 })
-export class HnModule { }
+export class HnModule {}

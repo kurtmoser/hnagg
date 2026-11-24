@@ -11,6 +11,7 @@ import decodeIco from 'decode-ico';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { etDateToUtcRange } from '../common/timezone';
+import { errorMessage } from '../common/errors';
 
 const execFileAsync = promisify(execFile);
 const IMAGES_DIR = '/app/images';
@@ -44,12 +45,9 @@ export class OgMetadataService {
     private readonly hnItemRepo: Repository<HnItem>,
     @InjectRepository(HnItemMetadata)
     private readonly metadataRepo: Repository<HnItemMetadata>,
-  ) { }
+  ) {}
 
-  async fetchOgMetadataForDate(
-    dateStr: string,
-    force = false,
-  ): Promise<void> {
+  async fetchOgMetadataForDate(dateStr: string, force = false): Promise<void> {
     const { from, to } = etDateToUtcRange(dateStr);
 
     const allItems = await this.hnItemRepo
@@ -69,13 +67,19 @@ export class OgMetadataService {
       items = allItems;
     } else {
       const itemIds = allItems.map((i) => i.id);
-      const existingMetadata = itemIds.length > 0
-        ? await this.metadataRepo
-            .createQueryBuilder('meta')
-            .select(['meta.id', 'meta.fetch_failed', 'meta.fetch_attempt_count', 'meta.last_fetch_attempted_at'])
-            .where('meta.id IN (:...ids)', { ids: itemIds })
-            .getMany()
-        : [];
+      const existingMetadata =
+        itemIds.length > 0
+          ? await this.metadataRepo
+              .createQueryBuilder('meta')
+              .select([
+                'meta.id',
+                'meta.fetch_failed',
+                'meta.fetch_attempt_count',
+                'meta.last_fetch_attempted_at',
+              ])
+              .where('meta.id IN (:...ids)', { ids: itemIds })
+              .getMany()
+          : [];
       const metadataMap = new Map(existingMetadata.map((m) => [m.id, m]));
       const oneHourAgo = new Date(Date.now() - RETRY_DELAY_MS);
       items = allItems.filter((item) => {
@@ -83,7 +87,11 @@ export class OgMetadataService {
         if (!meta) return true;
         if (!meta.fetch_failed) return false;
         if (meta.fetch_attempt_count >= MAX_FETCH_ATTEMPTS) return false;
-        if (meta.last_fetch_attempted_at && meta.last_fetch_attempted_at > oneHourAgo) return false;
+        if (
+          meta.last_fetch_attempted_at &&
+          meta.last_fetch_attempted_at > oneHourAgo
+        )
+          return false;
         return true;
       });
     }
@@ -107,7 +115,7 @@ export class OgMetadataService {
           this.getMetadataFetchUrl(item),
         );
       } catch (err) {
-        this.logger.error(`Failed for item ${item.id}: ${err.message ?? err}`);
+        this.logger.error(`Failed for item ${item.id}: ${errorMessage(err)}`);
         await this.recordFetchFailure(item.id);
       }
     }
@@ -137,10 +145,7 @@ export class OgMetadataService {
     return item.url ?? `${HN_ITEM_BASE_URL}${item.id}`;
   }
 
-  async fetchAndStoreOgMetadata(
-    itemId: number,
-    url: string,
-  ): Promise<void> {
+  async fetchAndStoreOgMetadata(itemId: number, url: string): Promise<void> {
     let html: string;
     try {
       const { data } = await axios.get<string>(url, {
@@ -148,12 +153,14 @@ export class OgMetadataService {
         maxRedirects: 5,
         responseType: 'text',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Referer': 'https://hnagg.com/',
-          'Connection': 'keep-alive',
+          Referer: 'https://hnagg.com/',
+          Connection: 'keep-alive',
           'Sec-Fetch-Site': 'cross-site',
           'Sec-Fetch-Mode': 'navigate',
           'Sec-Fetch-Dest': 'document',
@@ -161,11 +168,15 @@ export class OgMetadataService {
       });
       html = data;
     } catch (err) {
-      if (err.response?.status === 403) {
-        this.logger.warn(`Axios got 403 for ${url}, retrying with curl-impersonate`);
-        const { stdout } = await execFileAsync(CURL_IMPERSONATE_BIN, [
-          '--silent', '--location', '--max-time', '15', '--compressed', url,
-        ], { maxBuffer: 10 * 1024 * 1024 });
+      if (axios.isAxiosError(err) && err.response?.status === 403) {
+        this.logger.warn(
+          `Axios got 403 for ${url}, retrying with curl-impersonate`,
+        );
+        const { stdout } = await execFileAsync(
+          CURL_IMPERSONATE_BIN,
+          ['--silent', '--location', '--max-time', '15', '--compressed', url],
+          { maxBuffer: 10 * 1024 * 1024 },
+        );
         html = stdout;
       } else {
         throw err;
@@ -173,9 +184,7 @@ export class OgMetadataService {
     }
 
     const rawOgImage = this.extractImageUrl(html);
-    const ogImage = rawOgImage
-      ? this.resolveUrl(rawOgImage, url)
-      : null;
+    const ogImage = rawOgImage ? this.resolveUrl(rawOgImage, url) : null;
     const faviconUrl = this.extractFaviconUrl(html, url);
     const ogDescription = this.extractMetaTag(html, 'og:description');
 
@@ -226,7 +235,7 @@ export class OgMetadataService {
     if (typeof body !== 'string' || !/<(html|head|body)[\s>]/i.test(body)) {
       return null;
     }
-    return body.replace(/\u0000/g, '');
+    return body.replaceAll('\0', '');
   }
 
   private async recordFetchFailure(itemId: number): Promise<void> {
@@ -278,7 +287,8 @@ export class OgMetadataService {
 
     while ((match = tagRegex.exec(html)) !== null) {
       const tag = match[0];
-      if (this.extractAttribute(tag, matchAttr)?.toLowerCase() !== expected) continue;
+      if (this.extractAttribute(tag, matchAttr)?.toLowerCase() !== expected)
+        continue;
       const value = this.extractAttribute(tag, valueAttr);
       if (value) return value;
     }
@@ -301,7 +311,10 @@ export class OgMetadataService {
     return this.resolveUrl(faviconHref ?? '/favicon.ico', pageUrl);
   }
 
-  private extractLinkHrefByRel(html: string, requiredRelTokens: string[]): string | null {
+  private extractLinkHrefByRel(
+    html: string,
+    requiredRelTokens: string[],
+  ): string | null {
     const linkTagRegex = this.tagRegex('link');
     const required = requiredRelTokens.map((token) => token.toLowerCase());
     let match: RegExpExecArray | null;
@@ -380,7 +393,9 @@ export class OgMetadataService {
 
       return filename;
     } catch (err) {
-      console.error(`Failed to download favicon for item ${itemId} from ${faviconUrl}: ${err.message ?? err}`);
+      console.error(
+        `Failed to download favicon for item ${itemId} from ${faviconUrl}: ${errorMessage(err)}`,
+      );
       return null;
     }
   }
@@ -402,7 +417,9 @@ export class OgMetadataService {
         throw err;
       }
 
-      return this.resizeFaviconIcon(await this.icoImageToPngBuffer(largestImage));
+      return this.resizeFaviconIcon(
+        await this.icoImageToPngBuffer(largestImage),
+      );
     }
   }
 
@@ -463,7 +480,7 @@ export class OgMetadataService {
 
       return options.filename;
     } catch (err) {
-      console.error(`Failed to download image: ${err.message ?? err}`);
+      console.error(`Failed to download image: ${errorMessage(err)}`);
       return null;
     }
   }
@@ -478,22 +495,29 @@ export class OgMetadataService {
         responseType: 'arraybuffer',
         maxContentLength: 10 * 1024 * 1024,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Referer': 'https://hnagg.com/',
-          'Connection': 'keep-alive',
+          Referer: 'https://hnagg.com/',
+          Connection: 'keep-alive',
         },
       });
       return Buffer.from(response.data);
     } catch (err) {
-      if (err.response?.status === 403) {
-        this.logger.warn(`Axios got 403 for image ${imageUrl}, retrying with curl-impersonate`);
+      if (axios.isAxiosError(err) && err.response?.status === 403) {
+        this.logger.warn(
+          `Axios got 403 for image ${imageUrl}, retrying with curl-impersonate`,
+        );
         const tmpFile = `/tmp/curl-img-${itemId}`;
         try {
           await execFileAsync(CURL_IMPERSONATE_BIN, [
-            '--silent', '--location', '--max-time', '15',
-            '--output', tmpFile,
+            '--silent',
+            '--location',
+            '--max-time',
+            '15',
+            '--output',
+            tmpFile,
             imageUrl,
           ]);
           return fs.readFileSync(tmpFile);

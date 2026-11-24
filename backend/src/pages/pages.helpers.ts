@@ -33,7 +33,8 @@ export function formatDate(date: string): string {
 
 export function timeAgo(dateString: string | Date): string {
   const now = new Date();
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const date =
+    typeof dateString === 'string' ? new Date(dateString) : dateString;
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (seconds < 60) return `${seconds}s ago`;
@@ -66,16 +67,21 @@ const NAMED_ENTITIES: Record<string, string> = {
 };
 
 function decodeHtmlEntities(text: string): string {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, entity: string) => {
-    if (entity[0] === '#') {
-      const code =
-        entity[1].toLowerCase() === 'x'
-          ? parseInt(entity.slice(2), 16)
-          : parseInt(entity.slice(1), 10);
-      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : match;
-    }
-    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
-  });
+  return text.replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
+    (match, entity: string) => {
+      if (entity[0] === '#') {
+        const code =
+          entity[1].toLowerCase() === 'x'
+            ? parseInt(entity.slice(2), 16)
+            : parseInt(entity.slice(1), 10);
+        return code > 0 && code <= 0x10ffff
+          ? String.fromCodePoint(code)
+          : match;
+      }
+      return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+    },
+  );
 }
 
 /** Same cap as the LLM summaries (SummaryService), about two lines on desktop. */
@@ -107,7 +113,10 @@ export const MONOGRAM_COLORS = 10;
  * Returns a CSS class (not an inline color) because the CSP forbids inline
  * styles — see backend/src/security/csp.middleware.ts.
  */
-export function monogram(domain: string): { letter: string; colorClass: string } {
+export function monogram(domain: string): {
+  letter: string;
+  colorClass: string;
+} {
   const letter = (domain.trim()[0] || '?').toUpperCase();
   let hash = 0;
   for (let i = 0; i < domain.length; i++) {
@@ -239,14 +248,15 @@ export function computeDateBarLinks(
     }
   }
 
-  const lastDate = links.length > 0 ? links[links.length - 1].href.slice(6) : '';
+  const lastDate =
+    links.length > 0 ? links[links.length - 1].href.slice(6) : '';
   const atMinDate = lastDate === MIN_DATE;
 
   // Newer week: navigate to top of next week window
   let newerHref: string | null = null;
   if (weekOffset < 0) {
     const nextAnchor = new Date(
-      anchor.getTime() + ((weekOffset + 1) * 7) * 86_400_000,
+      anchor.getTime() + (weekOffset + 1) * 7 * 86_400_000,
     );
     const nextIso = nextAnchor.toISOString().slice(0, 10);
     const dest = nextIso <= today ? nextIso : today;
@@ -257,7 +267,7 @@ export function computeDateBarLinks(
   let olderHref: string | null = null;
   if (!atMinDate) {
     const prevAnchor = new Date(
-      anchor.getTime() + ((weekOffset - 1) * 7) * 86_400_000,
+      anchor.getTime() + (weekOffset - 1) * 7 * 86_400_000,
     );
     let olderDate = prevAnchor.toISOString().slice(0, 10);
     if (olderDate < MIN_DATE) olderDate = MIN_DATE;
@@ -286,7 +296,9 @@ export function computeWeekBarLinks(
   // Group -1 = the COUNT weeks before that, etc.
   const selectedMs = new Date(`${selectedSunday}T12:00:00Z`).getTime();
   const todaySundayMs = new Date(`${todaySunday}T12:00:00Z`).getTime();
-  const weeksBehind = Math.round((todaySundayMs - selectedMs) / (7 * 86_400_000));
+  const weeksBehind = Math.round(
+    (todaySundayMs - selectedMs) / (7 * 86_400_000),
+  );
   const groupOffset = weeksBehind >= 0 ? -Math.floor(weeksBehind / COUNT) : 0;
 
   const links: DateLink[] = [];
@@ -327,21 +339,29 @@ export function computeWeekBarLinks(
     });
   }
 
-  const oldestShown = links.length > 0 ? links[links.length - 1].href.slice(6) : minSunday;
+  const oldestShown =
+    links.length > 0 ? links[links.length - 1].href.slice(6) : minSunday;
   const atMinWeek = oldestShown <= minSunday;
 
   // Newer group: jump COUNT weeks forward from the newest shown
   let newerHref: string | null = null;
   if (groupOffset < 0) {
-    const newestInNextGroup = addDays(todaySunday, ((groupOffset + 1) * COUNT) * 7);
-    const dest = newestInNextGroup <= todaySunday ? newestInNextGroup : todaySunday;
+    const newestInNextGroup = addDays(
+      todaySunday,
+      (groupOffset + 1) * COUNT * 7,
+    );
+    const dest =
+      newestInNextGroup <= todaySunday ? newestInNextGroup : todaySunday;
     newerHref = `/week/${dest}`;
   }
 
   // Older group: jump COUNT weeks back from the oldest shown
   let olderHref: string | null = null;
   if (!atMinWeek) {
-    const oldestInPrevGroup = addDays(todaySunday, ((groupOffset - 1) * COUNT) * 7);
+    const oldestInPrevGroup = addDays(
+      todaySunday,
+      (groupOffset - 1) * COUNT * 7,
+    );
     const dest = oldestInPrevGroup >= minSunday ? oldestInPrevGroup : minSunday;
     olderHref = `/week/${dest}`;
   }
@@ -405,21 +425,29 @@ export function computeMonthBarLinks(
     });
   }
 
-  const oldestShown = links.length > 0 ? links[links.length - 1].href.slice(7) : minMonth;
+  const oldestShown =
+    links.length > 0 ? links[links.length - 1].href.slice(7) : minMonth;
   const atMinMonth = oldestShown <= minMonth;
 
   // Newer group
   let newerHref: string | null = null;
   if (groupOffset < 0) {
-    const newestInNextGroup = addMonthOffset(todayMonth, (groupOffset + 1) * COUNT);
-    const dest = newestInNextGroup <= todayMonth ? newestInNextGroup : todayMonth;
+    const newestInNextGroup = addMonthOffset(
+      todayMonth,
+      (groupOffset + 1) * COUNT,
+    );
+    const dest =
+      newestInNextGroup <= todayMonth ? newestInNextGroup : todayMonth;
     newerHref = `/month/${dest}`;
   }
 
   // Older group
   let olderHref: string | null = null;
   if (!atMinMonth) {
-    const oldestInPrevGroup = addMonthOffset(todayMonth, (groupOffset - 1) * COUNT);
+    const oldestInPrevGroup = addMonthOffset(
+      todayMonth,
+      (groupOffset - 1) * COUNT,
+    );
     const dest = oldestInPrevGroup >= minMonth ? oldestInPrevGroup : minMonth;
     olderHref = `/month/${dest}`;
   }
@@ -459,7 +487,12 @@ export function computePageLinks(
 
 export function buildJsonLd(
   date: string,
-  stories: Array<{ rank: number; title: string | null; url: string | null; id: number }>,
+  stories: Array<{
+    rank: number;
+    title: string | null;
+    url: string | null;
+    id: number;
+  }>,
 ): string {
   const url = `${DOMAIN}/date/${date}`;
   const jsonLd = [

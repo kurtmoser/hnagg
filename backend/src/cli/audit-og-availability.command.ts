@@ -61,7 +61,8 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
           maxRedirects: 5,
           responseType: 'text',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             Accept: 'text/html',
             'Accept-Language': 'en-US,en;q=0.9',
           },
@@ -75,9 +76,9 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
         }
       } catch (err) {
         let key: string;
-        if (err.response?.status) {
+        if (axios.isAxiosError(err) && err.response?.status) {
           key = String(err.response.status);
-        } else if (err.code === 'ECONNABORTED') {
+        } else if (axios.isAxiosError(err) && err.code === 'ECONNABORTED') {
           key = 'timeout';
         } else {
           key = 'network_error';
@@ -86,15 +87,10 @@ export class AuditOgAvailabilityCommand extends CommandRunner {
       }
     }
 
-    const totalErrors = Array.from(errors.values()).reduce(
-      (a, b) => a + b,
-      0,
-    );
+    const totalErrors = Array.from(errors.values()).reduce((a, b) => a + b, 0);
 
     console.log('');
-    console.log(
-      `Results for ${dateStr} (${items.length} stories with URLs):`,
-    );
+    console.log(`Results for ${dateStr} (${items.length} stories with URLs):`);
     console.log(`  HTML received, og:image found:      ${withImage}`);
     console.log(`  HTML received, og:image not found:   ${withoutImage}`);
     console.log(`  HTTP/network errors:                 ${totalErrors}`);

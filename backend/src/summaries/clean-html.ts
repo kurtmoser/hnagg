@@ -6,8 +6,10 @@
  */
 export function cleanHtmlForLlm(html: string): string {
   return html
-    .replace(/<script\b([^>]*)>[\s\S]*?<\/script\s*>/gi, (tag, attrs: string) =>
-      /application\/ld\+json|__NEXT_DATA__/i.test(attrs) ? tag : '',
+    .replace(
+      /<script\b([^>]*)>[\s\S]*?<\/script\s*>/gi,
+      (tag, attrs: string) =>
+        /application\/ld\+json|__NEXT_DATA__/i.test(attrs) ? tag : '',
     )
     .replace(/<style\b[\s\S]*?<\/style\s*>/gi, '')
     .replace(/<svg\b[\s\S]*?<\/svg\s*>/gi, '')

@@ -15,7 +15,7 @@ import { StoriesService } from './stories.service';
 
 @Controller('api/stories')
 export class StoriesController {
-  constructor(private readonly storiesService: StoriesService) { }
+  constructor(private readonly storiesService: StoriesService) {}
 
   @Get()
   findAll(

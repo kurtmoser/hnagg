@@ -1,9 +1,9 @@
 import { Command, CommandRunner } from 'nest-commander';
 import * as https from 'https';
 import { HnImportService } from '../hn/hn-import.service';
+import { errorMessage } from '../common/errors';
 
-const UPDATES_URL =
-  'https://hacker-news.firebaseio.com/v0/updates.json';
+const UPDATES_URL = 'https://hacker-news.firebaseio.com/v0/updates.json';
 
 const DEBOUNCE_MS = 2000;
 
@@ -24,7 +24,7 @@ export class StreamUpdatesCommand extends CommandRunner {
   async run(): Promise<void> {
     console.log('\n🔴 Streaming /v0/updates.json (press Ctrl+C to stop)\n');
     this.connect();
-    await new Promise<void>(() => { });
+    await new Promise<void>(() => {});
   }
 
   private connect(): void {
@@ -33,7 +33,9 @@ export class StreamUpdatesCommand extends CommandRunner {
       { headers: { Accept: 'text/event-stream' } },
       (res) => {
         if (res.statusCode !== 200) {
-          console.error(`❌ Unexpected status: ${res.statusCode}, reconnecting in 3s...`);
+          console.error(
+            `❌ Unexpected status: ${res.statusCode}, reconnecting in 3s...`,
+          );
           res.resume();
           setTimeout(() => this.connect(), 3000);
           return;
@@ -84,7 +86,10 @@ export class StreamUpdatesCommand extends CommandRunner {
     if (!data) return;
 
     try {
-      const parsed = JSON.parse(data);
+      const parsed = JSON.parse(data) as {
+        data?: { items?: number[] };
+        items?: number[];
+      } | null;
       const items: number[] = parsed?.data?.items ?? parsed?.items ?? [];
       if (items.length === 0) return;
 
@@ -104,7 +109,7 @@ export class StreamUpdatesCommand extends CommandRunner {
     }
 
     this.debounceTimer = setTimeout(() => {
-      this.processPendingIds();
+      void this.processPendingIds();
     }, DEBOUNCE_MS);
   }
 
@@ -124,7 +129,7 @@ export class StreamUpdatesCommand extends CommandRunner {
         `  ✅ ${result.inserted} inserted, ${result.updated} updated, ${result.unchanged} unchanged, ${result.skippedNonStory} non-story skipped`,
       );
     } catch (err) {
-      console.error(`  ❌ Error:`, err.message ?? err);
+      console.error(`  ❌ Error:`, errorMessage(err));
     }
 
     this.processing = false;

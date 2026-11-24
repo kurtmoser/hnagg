@@ -5,8 +5,12 @@ import { HnItem } from '../database/entities/hn-item.entity';
 import { DescendantsSnapshot } from '../database/entities/descendants-snapshot.entity';
 import { ScoreSnapshot } from '../database/entities/score-snapshot.entity';
 import { HnApiService, HnApiItem } from './hn-api.service';
+import { errorMessage } from '../common/errors';
 
 const BATCH_SIZE = 8;
+
+/** Values compared by diffFields (and printed in update logs). */
+type FieldValue = string | number | boolean | null;
 
 @Injectable()
 export class HnImportService {
@@ -19,7 +23,7 @@ export class HnImportService {
     private readonly scoreSnapshotRepository: Repository<ScoreSnapshot>,
     @InjectRepository(DescendantsSnapshot)
     private readonly descendantsSnapshotRepository: Repository<DescendantsSnapshot>,
-  ) { }
+  ) {}
 
   async importLatestStories(
     limit: number,
@@ -39,13 +43,18 @@ export class HnImportService {
 
       const done = Math.min(i + BATCH_SIZE, ids.length);
       const pct = Math.round((done / ids.length) * 100);
-      const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
-      process.stdout.write(`\r  Fetching items [${bar}] ${done}/${ids.length} (${pct}%)`);
+      const bar =
+        '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
+      process.stdout.write(
+        `\r  Fetching items [${bar}] ${done}/${ids.length} (${pct}%)`,
+      );
     }
     console.log('\n');
 
     const stories = items.filter((item) => item.type === 'story');
-    console.log(`🔍 Found ${stories.length} stories out of ${items.length} items.`);
+    console.log(
+      `🔍 Found ${stories.length} stories out of ${items.length} items.`,
+    );
     console.log(`💾 Saving to database...\n`);
 
     let imported = 0;
@@ -71,14 +80,20 @@ export class HnImportService {
         }
       } catch (err) {
         failed++;
-        this.logger.warn(`Failed to save story ${apiItem.id}: ${err.message}`);
+        this.logger.warn(
+          `Failed to save story ${apiItem.id}: ${errorMessage(err)}`,
+        );
       }
 
       const done = imported + failed;
       if (done % 10 === 0 || done === stories.length) {
         const pct = Math.round((done / stories.length) * 100);
-        const bar = '█'.repeat(Math.round(pct / 5)) + '░'.repeat(20 - Math.round(pct / 5));
-        process.stdout.write(`\r  Saving stories [${bar}] ${done}/${stories.length} (${pct}%)`);
+        const bar =
+          '█'.repeat(Math.round(pct / 5)) +
+          '░'.repeat(20 - Math.round(pct / 5));
+        process.stdout.write(
+          `\r  Saving stories [${bar}] ${done}/${stories.length} (${pct}%)`,
+        );
       }
     }
     console.log('\n');
@@ -87,14 +102,20 @@ export class HnImportService {
     if (failed > 0) {
       console.log(`⚠️  ${failed} stories failed to save.`);
     }
-    console.log(`✅ Import complete: ${imported} stories imported, ${skipped} non-story items skipped.\n`);
+    console.log(
+      `✅ Import complete: ${imported} stories imported, ${skipped} non-story items skipped.\n`,
+    );
     return { imported, skipped };
   }
 
-  async syncItems(
-    ids: number[],
-  ): Promise<{ inserted: number; updated: number; unchanged: number; skippedNonStory: number }> {
-    if (ids.length === 0) return { inserted: 0, updated: 0, unchanged: 0, skippedNonStory: 0 };
+  async syncItems(ids: number[]): Promise<{
+    inserted: number;
+    updated: number;
+    unchanged: number;
+    skippedNonStory: number;
+  }> {
+    if (ids.length === 0)
+      return { inserted: 0, updated: 0, unchanged: 0, skippedNonStory: 0 };
 
     // Load full existing records (need all fields for diffing)
     const existingItems = await this.hnItemRepository.find({
@@ -110,7 +131,9 @@ export class HnImportService {
       const results = await Promise.all(
         batch.map((id) => this.hnApiService.getItem(id)),
       );
-      fetchedMissing.push(...results.filter((item): item is HnApiItem => item !== null));
+      fetchedMissing.push(
+        ...results.filter((item): item is HnApiItem => item !== null),
+      );
     }
 
     let inserted = 0;
@@ -119,12 +142,16 @@ export class HnImportService {
         await this.hnItemRepository.save(this.mapToEntity(apiItem));
         inserted++;
       } catch (err) {
-        this.logger.warn(`Failed to insert item ${apiItem.id}: ${err.message}`);
+        this.logger.warn(
+          `Failed to insert item ${apiItem.id}: ${errorMessage(err)}`,
+        );
       }
     }
 
     // --- Update existing stories ---
-    const existingStories = existingItems.filter((item) => item.type === 'story');
+    const existingStories = existingItems.filter(
+      (item) => item.type === 'story',
+    );
     const skippedNonStory = existingItems.length - existingStories.length;
     const storyIds = existingStories.map((item) => item.id);
 
@@ -134,7 +161,9 @@ export class HnImportService {
       const results = await Promise.all(
         batch.map((id) => this.hnApiService.getItem(id)),
       );
-      fetchedStories.push(...results.filter((item): item is HnApiItem => item !== null));
+      fetchedStories.push(
+        ...results.filter((item): item is HnApiItem => item !== null),
+      );
     }
 
     let updated = 0;
@@ -163,14 +192,19 @@ export class HnImportService {
           }
 
           const summary = Object.entries(changes)
-            .map(([key, { old: oldVal, new: newVal }]) => `${key} ${oldVal}→${newVal}`)
+            .map(
+              ([key, { old: oldVal, new: newVal }]) =>
+                `${key} ${oldVal}→${newVal}`,
+            )
             .join(', ');
           console.log(`  📝 Story ${apiItem.id} updated: ${summary}`);
         } else {
           unchanged++;
         }
       } catch (err) {
-        this.logger.warn(`Failed to update story ${apiItem.id}: ${err.message}`);
+        this.logger.warn(
+          `Failed to update story ${apiItem.id}: ${errorMessage(err)}`,
+        );
       }
     }
 
@@ -200,28 +234,36 @@ export class HnImportService {
   private diffFields(
     dbItem: HnItem,
     apiItem: HnApiItem,
-  ): Record<string, { old: any; new: any }> {
-    const changes: Record<string, { old: any; new: any }> = {};
+  ): Record<string, { old: FieldValue; new: FieldValue }> {
+    const changes: Record<string, { old: FieldValue; new: FieldValue }> = {};
 
     const fields: {
       key: string;
-      dbVal: any;
-      apiVal: any;
+      dbVal: FieldValue;
+      apiVal: FieldValue;
     }[] = [
-        { key: 'score', dbVal: dbItem.score, apiVal: apiItem.score ?? null },
-        { key: 'descendants', dbVal: dbItem.descendants, apiVal: apiItem.descendants ?? null },
-        { key: 'title', dbVal: dbItem.title, apiVal: apiItem.title ?? null },
-        { key: 'text', dbVal: dbItem.text, apiVal: apiItem.text ?? null },
-        { key: 'url', dbVal: dbItem.url, apiVal: apiItem.url ?? null },
-        { key: 'by', dbVal: dbItem.by, apiVal: apiItem.by ?? null },
-        { key: 'dead', dbVal: dbItem.dead, apiVal: apiItem.dead ?? false },
-        { key: 'deleted', dbVal: dbItem.deleted, apiVal: apiItem.deleted ?? false },
-        {
-          key: 'kids',
-          dbVal: dbItem.kids?.length ?? 0,
-          apiVal: apiItem.kids?.length ?? 0,
-        },
-      ];
+      { key: 'score', dbVal: dbItem.score, apiVal: apiItem.score ?? null },
+      {
+        key: 'descendants',
+        dbVal: dbItem.descendants,
+        apiVal: apiItem.descendants ?? null,
+      },
+      { key: 'title', dbVal: dbItem.title, apiVal: apiItem.title ?? null },
+      { key: 'text', dbVal: dbItem.text, apiVal: apiItem.text ?? null },
+      { key: 'url', dbVal: dbItem.url, apiVal: apiItem.url ?? null },
+      { key: 'by', dbVal: dbItem.by, apiVal: apiItem.by ?? null },
+      { key: 'dead', dbVal: dbItem.dead, apiVal: apiItem.dead ?? false },
+      {
+        key: 'deleted',
+        dbVal: dbItem.deleted,
+        apiVal: apiItem.deleted ?? false,
+      },
+      {
+        key: 'kids',
+        dbVal: dbItem.kids?.length ?? 0,
+        apiVal: apiItem.kids?.length ?? 0,
+      },
+    ];
 
     for (const { key, dbVal, apiVal } of fields) {
       if (dbVal !== apiVal) {

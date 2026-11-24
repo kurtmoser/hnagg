@@ -44,7 +44,9 @@ export function pageToMarkdown(html: string): PageMarkdown {
 
   const parts: string[] = [];
 
-  const title = textOf(head.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1]);
+  const title = textOf(
+    head.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1],
+  );
   if (title) parts.push(`# ${title}`);
 
   const description =
@@ -119,7 +121,9 @@ function metaContent(
   let match: RegExpExecArray | null;
   while ((match = tagRegex.exec(head)) !== null) {
     const tag = match[0];
-    const key = tag.match(new RegExp(`[\\s"']${attr}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, 'i'))?.[2];
+    const key = tag.match(
+      new RegExp(`[\\s"']${attr}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, 'i'),
+    )?.[2];
     if (key?.toLowerCase() !== value) continue;
     const content = tag.match(/[\s"']content\s*=\s*(["'])([\s\S]*?)\1/i)?.[2];
     const text = textOf(content);

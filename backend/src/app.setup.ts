@@ -12,6 +12,7 @@ function computeAssetVersion(assetsDir: string): string {
     try {
       hash.update(readFileSync(join(assetsDir, file)));
     } catch {
+      // Asset missing: leave it out of the hash.
     }
   }
   return hash.digest('hex').slice(0, 10);

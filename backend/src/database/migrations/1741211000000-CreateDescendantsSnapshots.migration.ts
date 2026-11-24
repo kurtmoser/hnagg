@@ -24,7 +24,9 @@ export class CreateDescendantsSnapshots1741211000000 implements MigrationInterfa
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "IDX_descendants_snapshots_item_recorded"`);
+    await queryRunner.query(
+      `DROP INDEX "IDX_descendants_snapshots_item_recorded"`,
+    );
     await queryRunner.query(`DROP INDEX "IDX_descendants_snapshots_item_id"`);
     await queryRunner.query(`DROP TABLE "descendants_snapshots"`);
   }

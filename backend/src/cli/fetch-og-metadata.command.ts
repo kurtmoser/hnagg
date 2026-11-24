@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { OgMetadataService } from './og-metadata.service';
+import { errorMessage } from '../common/errors';
 
 @Command({
   name: 'fetch-og-metadata',
@@ -39,7 +40,7 @@ export class FetchOgMetadataCommand extends CommandRunner {
         this.ogMetadataService.getMetadataFetchUrl(item),
       );
     } catch (err) {
-      console.error('Failed:', err.message ?? err);
+      console.error('Failed:', errorMessage(err));
       process.exitCode = 1;
     }
   }

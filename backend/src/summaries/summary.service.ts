@@ -95,7 +95,9 @@ export class SummaryService {
 
     for (let i = 0; i < candidates.length; i++) {
       const { item, meta } = candidates[i];
-      console.log(`Summary ${i + 1}/${candidates.length}: item ${item.id} — ${item.title}`);
+      console.log(
+        `Summary ${i + 1}/${candidates.length}: item ${item.id} — ${item.title}`,
+      );
       try {
         await this.summarizeOne(item, meta);
       } catch (err) {
@@ -164,7 +166,10 @@ export class SummaryService {
     return meta.page_html || null;
   }
 
-  private async summarizeOne(item: HnItem, meta: HnItemMetadata): Promise<void> {
+  private async summarizeOne(
+    item: HnItem,
+    meta: HnItemMetadata,
+  ): Promise<void> {
     const { markdown, thinBody } = pageToMarkdown(
       this.pageContent(item, meta) ?? '',
     );
@@ -207,7 +212,9 @@ export class SummaryService {
     }
 
     if (SELF_TALK_PATTERN.test(summary)) {
-      console.log(`  -> rejected, model reasoning leaked into reply: ${summary}`);
+      console.log(
+        `  -> rejected, model reasoning leaked into reply: ${summary}`,
+      );
       await this.recordAttempt(meta, meta.summary_attempt_count + 1);
       return;
     }
@@ -312,7 +319,9 @@ export class SummaryService {
       head.lastIndexOf('? '),
     );
     if (sentenceEnd > max / 2) return head.slice(0, sentenceEnd + 1);
-    return head.slice(0, head.lastIndexOf(' ', max - 1)).replace(/[,;:]$/, '') + '…';
+    return (
+      head.slice(0, head.lastIndexOf(' ', max - 1)).replace(/[,;:]$/, '') + '…'
+    );
   }
 
   private async recordAttempt(

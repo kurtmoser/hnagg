@@ -25,4 +25,4 @@ import { SummaryService } from '../summaries/summary.service';
     SummaryService,
   ],
 })
-export class CliModule { }
+export class CliModule {}

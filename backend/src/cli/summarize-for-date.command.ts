@@ -21,7 +21,10 @@ export class SummarizeForDateCommand extends CommandRunner {
       return;
     }
 
-    await this.summaryService.summarizeForDate(dateStr, options?.force ?? false);
+    await this.summaryService.summarizeForDate(
+      dateStr,
+      options?.force ?? false,
+    );
   }
 
   @Option({

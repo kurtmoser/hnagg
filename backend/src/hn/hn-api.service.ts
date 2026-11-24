@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { errorMessage } from '../common/errors';
 
 export interface HnApiItem {
   id: number;
@@ -26,7 +27,7 @@ const BASE_URL = 'https://hacker-news.firebaseio.com/v0';
 export class HnApiService {
   private readonly logger = new Logger(HnApiService.name);
 
-  constructor(private readonly httpService: HttpService) { }
+  constructor(private readonly httpService: HttpService) {}
 
   async getNewStoryIds(): Promise<number[]> {
     const { data } = await firstValueFrom(
@@ -42,7 +43,7 @@ export class HnApiService {
       );
       return data ?? null;
     } catch (error) {
-      this.logger.warn(`Failed to fetch item ${id}: ${error.message}`);
+      this.logger.warn(`Failed to fetch item ${id}: ${errorMessage(error)}`);
       return null;
     }
   }
