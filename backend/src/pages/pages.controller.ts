@@ -201,7 +201,9 @@ export class PagesController {
         rank: (page - 1) * limit + index + 1,
         imagePath: story.metadata?.local_image_path || null,
         faviconPath: story.metadata?.local_favicon_path || null,
-        summary: storySummary(story.metadata?.og_description, story.title),
+        summary:
+          story.metadata?.short_description ||
+          storySummary(story.metadata?.og_description, story.title),
       };
     });
 
