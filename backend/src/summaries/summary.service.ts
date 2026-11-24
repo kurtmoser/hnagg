@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { HnItem } from '../database/entities/hn-item.entity';
 import { HnItemMetadata } from '../database/entities/hn-item-metadata.entity';
 import { etDateToUtcRange } from '../common/timezone';
+import { errorMessage } from '../common/errors';
 import { pageToMarkdown } from './page-to-markdown';
 
 /**
@@ -105,8 +106,21 @@ export class SummaryService {
           this.logger.error('Anthropic API key was rejected; stopping.');
           return;
         }
+        // Outages are not the story's fault: stop without spending one of its
+        // attempts and let the next cron run retry. (The SDK has already
+        // retried twice with backoff before throwing these.)
+        if (
+          err instanceof Anthropic.RateLimitError ||
+          err instanceof Anthropic.InternalServerError ||
+          err instanceof Anthropic.APIConnectionError
+        ) {
+          this.logger.warn(
+            `Anthropic temporarily unavailable (${errorMessage(err)}); stopping, will retry next run.`,
+          );
+          break;
+        }
         this.logger.error(
-          `Summary failed for item ${item.id}: ${err instanceof Error ? err.message : err}`,
+          `Summary failed for item ${item.id}: ${errorMessage(err)}`,
         );
         await this.recordAttempt(meta, meta.summary_attempt_count + 1);
       }
