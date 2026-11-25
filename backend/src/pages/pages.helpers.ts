@@ -228,6 +228,89 @@ export function buildPageTitle(
   return `${title} and more on Hacker News, ${formatShortPeriod(dateOrMonth, period)}`;
 }
 
+export interface ArchiveDay {
+  day: number;
+  href: string | null;
+  title: string | null;
+  ariaLabel: string;
+  isToday: boolean;
+}
+
+export interface ArchiveWeek {
+  href: string | null;
+  label: string;
+  /** Always 7 slots (Sun..Sat); null for days outside the month. */
+  days: (ArchiveDay | null)[];
+}
+
+export interface ArchiveMonth {
+  label: string;
+  href: string | null;
+  weeks: ArchiveWeek[];
+}
+
+/**
+ * Calendar model for /archive: months newest first, from the current month
+ * back to MIN_DATE's month. Days link only when they have stories.
+ */
+export function buildArchiveCalendar(
+  topTitles: Map<string, string | null>,
+  today: string,
+): ArchiveMonth[] {
+  const minMonth = MIN_DATE.slice(0, 7);
+  const minSunday = getSundayStart(MIN_DATE);
+  const todaySunday = getSundayStart(today);
+  const months: ArchiveMonth[] = [];
+
+  for (
+    let ym = today.slice(0, 7);
+    ym >= minMonth;
+    ym = addMonthOffset(ym, -1)
+  ) {
+    const first = `${ym}-01`;
+    const weeks: ArchiveWeek[] = [];
+    for (
+      let sunday = getSundayStart(first);
+      sunday.slice(0, 7) <= ym;
+      sunday = addDays(sunday, 7)
+    ) {
+      const days: (ArchiveDay | null)[] = [];
+      for (let i = 0; i < 7; i++) {
+        const iso = addDays(sunday, i);
+        if (iso.slice(0, 7) !== ym) {
+          days.push(null);
+          continue;
+        }
+        const hasStories = topTitles.has(iso) && iso <= today;
+        const title = hasStories ? topTitles.get(iso)?.trim() || null : null;
+        days.push({
+          day: parseInt(iso.slice(8, 10), 10),
+          href: hasStories ? `/date/${iso}` : null,
+          title,
+          ariaLabel: title ? `${formatDate(iso)}: ${title}` : formatDate(iso),
+          isToday: iso === today,
+        });
+      }
+      const label = `Week of ${formatPeriodHeading(sunday, 'week')}`;
+      weeks.push({
+        href:
+          sunday >= minSunday && sunday <= todaySunday
+            ? `/week/${sunday}`
+            : null,
+        label,
+        days,
+      });
+    }
+    months.push({
+      label: formatPeriodHeading(ym, 'month'),
+      href: `/month/${ym}`,
+      weeks,
+    });
+  }
+
+  return months;
+}
+
 export interface DateLink {
   label: string;
   href: string;

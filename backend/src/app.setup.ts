@@ -3,6 +3,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { createHash } from 'crypto';
 import { readFileSync } from 'fs';
+import hbs from 'hbs';
 import { join } from 'path';
 import { contentSecurityPolicyMiddleware } from './security/csp.middleware';
 
@@ -27,6 +28,7 @@ export function configureApplication(app: NestExpressApplication) {
   app.getHttpAdapter().getInstance().locals.assetVersion =
     computeAssetVersion(assetsDir);
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
+  hbs.registerPartials(join(__dirname, '..', 'views', 'partials'));
   app.setViewEngine('hbs');
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));

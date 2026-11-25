@@ -27,6 +27,11 @@ export class SitemapController {
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>`,
+      `  <url>
+    <loc>${DOMAIN}/archive</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>`,
       ...dates.map((date) => {
         const isToday = date === todayStr;
         return `  <url>

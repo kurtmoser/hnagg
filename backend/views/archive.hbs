@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+{{> head}}
+</head>
+<body>
+
+{{> header}}
+
+<main class="archive">
+  <h1 class="archive-title">Hacker News Archive</h1>
+  <p class="archive-intro">Top Hacker News stories by day, week and month since {{sinceLabel}}.</p>
+
+  {{#each months}}
+  <section class="archive-month">
+    <h2 class="archive-month-title">
+      {{#if this.href}}<a href="{{this.href}}">{{this.label}}</a>{{else}}{{this.label}}{{/if}}
+    </h2>
+    <table class="cal">
+      <thead>
+        <tr>
+          <th scope="col" class="cal-week-head"><span class="sr-only">Week</span></th>
+          <th scope="col" abbr="Sunday">Sun</th>
+          <th scope="col" abbr="Monday">Mon</th>
+          <th scope="col" abbr="Tuesday">Tue</th>
+          <th scope="col" abbr="Wednesday">Wed</th>
+          <th scope="col" abbr="Thursday">Thu</th>
+          <th scope="col" abbr="Friday">Fri</th>
+          <th scope="col" abbr="Saturday">Sat</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each this.weeks}}
+        <tr>
+          <td class="cal-week">
+            {{#if this.href}}<a href="{{this.href}}" title="{{this.label}}" aria-label="{{this.label}}">&#8250;</a>{{/if}}
+          </td>
+          {{#each this.days}}
+            {{#if this}}
+              {{#if this.href}}
+                <td class="cal-day{{#if this.isToday}} today{{/if}}"><a href="{{this.href}}"{{#if this.title}} title="{{this.title}}"{{/if}} aria-label="{{this.ariaLabel}}">{{this.day}}</a></td>
+              {{else}}
+                <td class="cal-day empty{{#if this.isToday}} today{{/if}}">{{this.day}}</td>
+              {{/if}}
+            {{else}}
+              <td class="cal-day outside"></td>
+            {{/if}}
+          {{/each}}
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </section>
+  {{/each}}
+</main>
+
+{{> footer}}
+
+</body>
+</html>

@@ -19,6 +19,7 @@ import {
   computePageLinks,
   buildJsonLd,
   buildPageTitle,
+  buildArchiveCalendar,
   getSundayStart,
   getMonthOf,
   periodDateRange,
@@ -54,6 +55,54 @@ export class PagesController {
       return this.renderPage('month', getMonthOf(today), 1, res, true);
     }
     return this.renderPage('day', today, 1, res, true);
+  }
+
+  // --- Archive ---
+
+  @Get('archive')
+  async archivePage(@Res() res: PageResponse) {
+    const today = todayIso();
+    const topTitles = await this.storiesService.findTopTitlePerDay(MIN_DATE);
+    const canonicalUrl = `${DOMAIN}/archive`;
+    const jsonLd = JSON.stringify([
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'HNAgg',
+        url: `${DOMAIN}/`,
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: `${DOMAIN}/`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Archive',
+            item: canonicalUrl,
+          },
+        ],
+      },
+    ]);
+
+    res.render('archive', {
+      pageTitle:
+        'Hacker News Archive - Top Stories by Day, Week & Month | HNAgg',
+      metaDescription:
+        'Browse the top Hacker News stories for every day, week and month since March 2026.',
+      canonicalUrl,
+      ogImageUrl: `${DOMAIN}/assets/og-image.png`,
+      cspNonce: res.locals.cspNonce,
+      jsonLd,
+      sinceLabel: formatPeriodHeading(MIN_DATE, 'day'),
+      months: buildArchiveCalendar(topTitles, today),
+    });
   }
 
   // --- Day routes (existing) ---

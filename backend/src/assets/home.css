@@ -378,3 +378,113 @@ footer p {
   color: #9ca3af;
   margin: 0;
 }
+.header-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.header-link {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.header-link:hover {
+  color: white;
+}
+footer .footer-links {
+  margin-bottom: 0.25rem;
+}
+footer .footer-links a {
+  color: #6b7280;
+  text-decoration: none;
+}
+footer .footer-links a:hover {
+  color: #f97316;
+}
+
+/* Archive calendar */
+.archive {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 1.5rem;
+}
+.archive-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.archive-intro {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+}
+.archive-month {
+  margin-top: 1.5rem;
+}
+.archive-month-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.archive-month-title a {
+  color: #111827;
+  text-decoration: none;
+}
+.archive-month-title a:hover {
+  color: #f97316;
+}
+.cal {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  max-width: 24rem;
+}
+.cal th {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #9ca3af;
+  padding: 0.25rem 0;
+}
+.cal td {
+  text-align: center;
+  height: 2.5rem;
+  font-size: 0.875rem;
+}
+.cal-week-head, .cal-week {
+  width: 2rem;
+}
+.cal-week a {
+  display: block;
+  line-height: 2.25rem;
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 1.125rem;
+  border-radius: 6px;
+}
+.cal-week a:hover {
+  color: #f97316;
+  background: #fff7ed;
+}
+.cal-day a {
+  display: block;
+  margin: 0.125rem;
+  line-height: 2.25rem;
+  border-radius: 6px;
+  color: #111827;
+  font-weight: 500;
+  text-decoration: none;
+}
+.cal-day a:hover {
+  background: #fff7ed;
+  color: #f97316;
+}
+.cal-day.empty {
+  color: #d1d5db;
+}
+.cal-day.today a, .cal-day.today.empty {
+  box-shadow: inset 0 0 0 2px #f97316;
+  border-radius: 6px;
+}
