@@ -18,6 +18,7 @@ import {
   computeMonthBarLinks,
   computePageLinks,
   buildJsonLd,
+  buildPageTitle,
   getSundayStart,
   getMonthOf,
   periodDateRange,
@@ -234,6 +235,9 @@ export class PagesController {
       ? 'HNAgg - Top Hacker News Stories'
       : `Top Hacker News Stories - ${formatPeriodHeading(dateOrMonth, period)}`;
     const heading = periodLabel;
+    const pageTitle = isHome
+      ? heading
+      : buildPageTitle(result.data[0]?.title, dateOrMonth, period);
     const metaDescription = `Top ranked Hacker News stories for ${formatPeriodHeading(dateOrMonth, period)}.`;
     const canonicalUrl = isHome ? DOMAIN : `${DOMAIN}${basePath}`;
     const ogImageUrl = `${DOMAIN}/assets/og-image.png`;
@@ -250,7 +254,7 @@ export class PagesController {
     };
 
     res.render('home', {
-      pageTitle: heading,
+      pageTitle,
       metaDescription,
       canonicalUrl,
       ogImageUrl,

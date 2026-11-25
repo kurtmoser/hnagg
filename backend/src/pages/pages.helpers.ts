@@ -198,6 +198,36 @@ export function formatPeriodHeading(
   return formatDate(dateOrMonth);
 }
 
+/** Compact period label for page titles, e.g. "Nov 23, 2026". */
+export function formatShortPeriod(dateOrMonth: string, period: Period): string {
+  if (period === 'day') {
+    return new Date(`${dateOrMonth}T12:00:00Z`).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+  return formatPeriodHeading(dateOrMonth, period);
+}
+
+/**
+ * Page <title> led by the period's top story, e.g.
+ * "Some Headline and more on Hacker News, Nov 23, 2026". Falls back to the
+ * generic heading when there is no (titled) top story.
+ */
+export function buildPageTitle(
+  topTitle: string | null | undefined,
+  dateOrMonth: string,
+  period: Period,
+): string {
+  const title = topTitle?.trim();
+  if (!title) {
+    return `Top Hacker News Stories - ${formatPeriodHeading(dateOrMonth, period)}`;
+  }
+  return `${title} and more on Hacker News, ${formatShortPeriod(dateOrMonth, period)}`;
+}
+
 export interface DateLink {
   label: string;
   href: string;
