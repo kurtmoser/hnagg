@@ -20,22 +20,31 @@ export class SitemapController {
       dates.push(current.toISOString().slice(0, 10));
       current.setUTCDate(current.getUTCDate() + 1);
     }
+    dates.reverse();
 
     const urls = [
       `  <url>
     <loc>${DOMAIN}/</loc>
+    <lastmod>${todayStr}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>`,
       `  <url>
     <loc>${DOMAIN}/archive</loc>
+    <lastmod>${todayStr}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>`,
       ...dates.map((date) => {
         const isToday = date === todayStr;
+        // Day pages settle the day after; cap at today to avoid future dates.
+        const next = new Date(`${date}T00:00:00Z`);
+        next.setUTCDate(next.getUTCDate() + 1);
+        const nextStr = next.toISOString().slice(0, 10);
+        const lastmod = nextStr < todayStr ? nextStr : todayStr;
         return `  <url>
     <loc>${DOMAIN}/date/${date}</loc>
+    <lastmod>${lastmod}</lastmod>
     <changefreq>${isToday ? 'daily' : 'weekly'}</changefreq>
     <priority>0.8</priority>
   </url>`;

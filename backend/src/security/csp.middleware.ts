@@ -20,15 +20,23 @@ export function buildContentSecurityPolicy(nonce: string): string {
   ].join('; ');
 }
 
+/**
+ * Non-HTML documents opened directly in a browser. A CSP on these protects
+ * nothing and breaks Chrome's built-in XML viewer (it renders raw text).
+ */
+const CSP_EXEMPT_PATHS = new Set(['/sitemap.xml', '/robots.txt']);
+
 export function contentSecurityPolicyMiddleware(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ) {
   const nonce = randomBytes(CSP_NONCE_BYTES).toString('base64');
 
   res.locals.cspNonce = nonce;
-  res.setHeader('Content-Security-Policy', buildContentSecurityPolicy(nonce));
+  if (!CSP_EXEMPT_PATHS.has(req.path)) {
+    res.setHeader('Content-Security-Policy', buildContentSecurityPolicy(nonce));
+  }
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
 
